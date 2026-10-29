@@ -878,6 +878,65 @@ body.light-theme .report-block, body.light-theme .settings-card { box-shadow: 0 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .01ms !important; }
 }
+  /* ===== Мобильная адаптация вкладки «Посещаемость» ===== */
+@media (max-width: 640px) {
+  /* Убираем горизонтальный скролл */
+  #tab-attendance .table-wrap { overflow-x: visible; }
+  #tab-attendance table,
+  #tab-attendance tbody { display: block; width: 100%; }
+  #tab-attendance thead { display: none; }
+
+  /* Каждый ученик — карточка */
+  #tab-attendance tbody tr {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-areas:
+      "num  name"
+      "status status"
+      "reason reason";
+    gap: 8px 10px;
+    padding: 14px;
+    margin-bottom: 10px;
+    border: 1px solid var(--border);
+    border-left-width: 3px;
+    border-radius: 16px;
+    background: var(--card);
+    box-shadow: 0 3px 10px rgba(0,0,0,.05);
+  }
+  #tab-attendance tbody tr:hover { background-color: var(--card); }
+
+  #tab-attendance tbody td {
+    display: block;
+    padding: 0;
+    border: none;
+    width: auto !important;
+  }
+  #tab-attendance tbody td:nth-child(1) { grid-area: num; font-size: 12px; color: var(--muted); font-weight: 700; align-self: center; }
+  #tab-attendance tbody td:nth-child(2) { grid-area: name; font-weight: 600; font-size: 15px; line-height: 1.3; }
+  #tab-attendance tbody td:nth-child(3) { grid-area: status; }
+  #tab-attendance tbody td:nth-child(4) { grid-area: reason; margin-top: 2px; }
+
+  #tab-attendance .student-name { display: block; }
+  #tab-attendance .student-name .name-text { display: inline; margin-right: 4px; }
+  #tab-attendance .btn-quick-interval { opacity: 1; border-color: var(--border); vertical-align: middle; }
+
+  #tab-attendance .reason-select {
+    min-width: 0 !important;
+    width: 100%;
+    font-size: 13px;
+    padding: 9px 32px 9px 12px;
+  }
+  #tab-attendance .badge { font-size: 11px; padding: 4px 9px; }
+  #tab-attendance .compact-info { margin-top: 6px; }
+  #tab-attendance .partial-inputs { display: flex; gap: 6px; align-items: center; }
+  #tab-attendance .partial-inputs input { width: 60px; }
+
+  /* Пустое состояние «список пуст» */
+  #tab-attendance tbody td[colspan] { grid-column: 1 / -1; text-align: center; }
+
+  /* Длинный email не вылезает за пределы полосы */
+  #userEmail { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 60vw; }
+}
 </style>
 </head>
 <body>
