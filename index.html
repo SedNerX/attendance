@@ -531,11 +531,6 @@ details.students-list ul { margin: 8px 0 0 20px; font-size: 14px; }
 .empty-state { text-align: center; padding: 30px 20px; color: var(--muted); font-size: 15px; }
 .empty-state .emoji { font-size: 32px; display: block; margin-bottom: 10px; }
 
-.history-list { list-style: none; display: flex; flex-direction: column; gap: 8px; max-height: 400px; overflow-y: auto; }
-.history-item { padding: 12px; background: var(--input-bg); border-radius: 8px; border: 1px solid var(--border); font-size: 13px; }
-.history-time { font-size: 11px; color: var(--muted); margin-bottom: 4px; display: block; }
-.history-text b { color: var(--primary); }
-
 .print-header { display: none; }
 
 .login-screen {
@@ -809,7 +804,6 @@ button:active { transform: translateY(1px) scale(.985); }
 .form-group select, .form-group input[type="text"], .form-group input[type="date"],
 .settings-card input[type="text"], .settings-card textarea, .schedule-item input[type="number"],
 .quarter-row input[type="date"], .report-controls input[type="date"], .report-controls input[type="month"] { border-radius: 11px; }
-.history-item { border-radius: 11px; padding: 13px 14px; }
 .toast {
   position: fixed; left: 50%; bottom: 26px; z-index: 150; transform: translate(-50%, 16px);
   padding: 12px 18px; border-radius: 13px; border: 1px solid rgba(var(--primary-rgb),.35);
@@ -878,64 +872,61 @@ body.light-theme .report-block, body.light-theme .settings-card { box-shadow: 0 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .01ms !important; }
 }
-  /* ===== Мобильная адаптация вкладки «Посещаемость» ===== */
-@media (max-width: 640px) {
-  /* Убираем горизонтальный скролл */
-  #tab-attendance .table-wrap { overflow-x: visible; }
-  #tab-attendance table,
-  #tab-attendance tbody { display: block; width: 100%; }
-  #tab-attendance thead { display: none; }
 
-  /* Каждый ученик — карточка */
+/* ===== Мобильная адаптация вкладки «Посещаемость» ===== */
+@media (max-width: 900px) {
+  #tab-attendance .table-wrap { overflow-x: visible !important; }
+  #tab-attendance table,
+  #tab-attendance tbody { display: block !important; width: 100% !important; }
+  #tab-attendance thead { display: none !important; }
+
   #tab-attendance tbody tr {
-    display: grid;
-    grid-template-columns: auto 1fr;
+    display: grid !important;
+    grid-template-columns: auto 1fr !important;
     grid-template-areas:
       "num  name"
       "status status"
-      "reason reason";
-    gap: 8px 10px;
-    padding: 14px;
-    margin-bottom: 10px;
-    border: 1px solid var(--border);
-    border-left-width: 3px;
-    border-radius: 16px;
-    background: var(--card);
-    box-shadow: 0 3px 10px rgba(0,0,0,.05);
+      "reason reason" !important;
+    gap: 8px 10px !important;
+    padding: 14px !important;
+    margin-bottom: 10px !important;
+    border: 1px solid var(--border) !important;
+    border-left-width: 3px !important;
+    border-radius: 16px !important;
+    background: var(--card) !important;
+    box-shadow: 0 3px 10px rgba(0,0,0,.05) !important;
   }
-  #tab-attendance tbody tr:hover { background-color: var(--card); }
+  #tab-attendance tbody tr:hover { background-color: var(--card) !important; }
 
   #tab-attendance tbody td {
-    display: block;
-    padding: 0;
-    border: none;
+    display: block !important;
+    padding: 0 !important;
+    border: none !important;
     width: auto !important;
   }
-  #tab-attendance tbody td:nth-child(1) { grid-area: num; font-size: 12px; color: var(--muted); font-weight: 700; align-self: center; }
-  #tab-attendance tbody td:nth-child(2) { grid-area: name; font-weight: 600; font-size: 15px; line-height: 1.3; }
-  #tab-attendance tbody td:nth-child(3) { grid-area: status; }
-  #tab-attendance tbody td:nth-child(4) { grid-area: reason; margin-top: 2px; }
+  #tab-attendance tbody td:nth-child(1) { grid-area: num !important; font-size: 12px !important; color: var(--muted) !important; font-weight: 700 !important; align-self: center !important; }
+  #tab-attendance tbody td:nth-child(2) { grid-area: name !important; font-weight: 600 !important; font-size: 15px !important; line-height: 1.3 !important; }
+  #tab-attendance tbody td:nth-child(3) { grid-area: status !important; }
+  #tab-attendance tbody td:nth-child(4) { grid-area: reason !important; margin-top: 2px !important; }
 
-  #tab-attendance .student-name { display: block; }
-  #tab-attendance .student-name .name-text { display: inline; margin-right: 4px; }
-  #tab-attendance .btn-quick-interval { opacity: 1; border-color: var(--border); vertical-align: middle; }
+  #tab-attendance .student-name { display: block !important; }
+  #tab-attendance .student-name .name-text { display: inline !important; margin-right: 4px !important; }
+  #tab-attendance .btn-quick-interval { opacity: 1 !important; border-color: var(--border) !important; vertical-align: middle !important; }
 
   #tab-attendance .reason-select {
     min-width: 0 !important;
-    width: 100%;
-    font-size: 13px;
-    padding: 9px 32px 9px 12px;
+    width: 100% !important;
+    font-size: 13px !important;
+    padding: 9px 32px 9px 12px !important;
   }
-  #tab-attendance .badge { font-size: 11px; padding: 4px 9px; }
-  #tab-attendance .compact-info { margin-top: 6px; }
-  #tab-attendance .partial-inputs { display: flex; gap: 6px; align-items: center; }
-  #tab-attendance .partial-inputs input { width: 60px; }
+  #tab-attendance .badge { font-size: 11px !important; padding: 4px 9px !important; }
+  #tab-attendance .compact-info { margin-top: 6px !important; }
+  #tab-attendance .partial-inputs { display: flex !important; gap: 6px !important; align-items: center !important; }
+  #tab-attendance .partial-inputs input { width: 60px !important; }
 
-  /* Пустое состояние «список пуст» */
-  #tab-attendance tbody td[colspan] { grid-column: 1 / -1; text-align: center; }
+  #tab-attendance tbody td[colspan] { grid-column: 1 / -1 !important; text-align: center !important; }
 
-  /* Длинный email не вылезает за пределы полосы */
-  #userEmail { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 60vw; }
+  #userEmail { overflow: hidden !important; text-overflow: ellipsis !important; white-space: nowrap !important; max-width: 60vw !important; }
 }
 </style>
 </head>
