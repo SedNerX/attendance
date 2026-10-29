@@ -2,8 +2,9 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Учёт посещаемости класса</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📋</text></svg>">
 <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -15,245 +16,90 @@
   --success: #4ade80; --danger: #f87171;
   --shadow: 0 2px 8px rgba(0,0,0,0.3); --shadow-lg: 0 10px 40px rgba(0,0,0,0.5);
   --radius: 14px;
-
-  --r-family-bg: rgba(var(--primary-rgb),0.10);   --r-family-fg: #8ba3ff;   --r-family-border: rgba(var(--primary-rgb),0.35);
-  --r-health-bg: rgba(251,191,36,0.10);    --r-health-fg: #fbbf24;   --r-health-border: rgba(251,191,36,0.35);
-  --r-medical-bg: rgba(248,113,113,0.10);  --r-medical-fg: #f87171;  --r-medical-border: rgba(248,113,113,0.35);
+  --r-family-bg: rgba(var(--primary-rgb),0.10); --r-family-fg: #8ba3ff; --r-family-border: rgba(var(--primary-rgb),0.35);
+  --r-health-bg: rgba(251,191,36,0.10); --r-health-fg: #fbbf24; --r-health-border: rgba(251,191,36,0.35);
+  --r-medical-bg: rgba(248,113,113,0.10); --r-medical-fg: #f87171; --r-medical-border: rgba(248,113,113,0.35);
   --r-ozdorovlenie-bg: rgba(45,212,191,0.10); --r-ozdorovlenie-fg: #2dd4bf; --r-ozdorovlenie-border: rgba(45,212,191,0.35);
-  --r-sport-bg: rgba(74,222,128,0.10);     --r-sport-fg: #4ade80;    --r-sport-border: rgba(74,222,128,0.35);
+  --r-sport-bg: rgba(74,222,128,0.10); --r-sport-fg: #4ade80; --r-sport-border: rgba(74,222,128,0.35);
   --r-cultural-bg: rgba(167,139,250,0.10); --r-cultural-fg: #a78bfa; --r-cultural-border: rgba(167,139,250,0.35);
-  --r-norespect-bg: rgba(239,68,68,0.15);  --r-norespect-fg: #ef4444;--r-norespect-border: rgba(239,68,68,0.5);
-  --r-other-bg: rgba(139,148,168,0.10);    --r-other-fg: #a8b0c2;    --r-other-border: rgba(139,148,168,0.35);
+  --r-norespect-bg: rgba(239,68,68,0.15); --r-norespect-fg: #ef4444; --r-norespect-border: rgba(239,68,68,0.5);
+  --r-other-bg: rgba(139,148,168,0.10); --r-other-fg: #a8b0c2; --r-other-border: rgba(139,148,168,0.35);
 }
-
 body.light-theme {
   --bg: #f0f4f8; --card: #ffffff; --card-hover: #f8fafc; --input-bg: #f1f5f9;
   --text: #0f172a; --muted: #64748b; --border: #e2e8f0; --border-hover: #cbd5e1;
   --shadow: 0 2px 8px rgba(15,23,42,0.05); --shadow-lg: 0 10px 30px rgba(15,23,42,0.08);
-  
-  --r-family-bg: #eff6ff;  --r-family-fg: #1d4ed8;  --r-family-border: #bfdbfe;
-  --r-health-bg: #fffbeb;  --r-health-fg: #b45309;  --r-health-border: #fde68a;
-  --r-medical-bg: #fef2f2; --r-medical-fg: #b91c1c; --r-medical-border: #fecaca;
-  --r-ozdorovlenie-bg: #f0fdfa; --r-ozdorovlenie-fg: #0f766e; --r-ozdorovlenie-border: #99f6e4;
-  --r-sport-bg: #f0fdf4;   --r-sport-fg: #15803d;   --r-sport-border: #bbf7d0;
-  --r-cultural-bg: #f5f3ff;--r-cultural-fg: #6d28d9;--r-cultural-border: #ddd6fe;
-  --r-norespect-bg: #fef2f2;--r-norespect-fg: #dc2626;--r-norespect-border: #fca5a5;
-  --r-other-bg: #f8fafc;   --r-other-fg: #475569;   --r-other-border: #e2e8f0;
+  --r-family-bg: #eff6ff; --r-family-fg: #1d4ed8; --r-family-border: #bfdbfe; --r-health-bg: #fffbeb; --r-health-fg: #b45309; --r-health-border: #fde68a;
+  --r-medical-bg: #fef2f2; --r-medical-fg: #b91c1c; --r-medical-border: #fecaca; --r-ozdorovlenie-bg: #f0fdfa; --r-ozdorovlenie-fg: #0f766e; --r-ozdorovlenie-border: #99f6e4;
+  --r-sport-bg: #f0fdf4; --r-sport-fg: #15803d; --r-sport-border: #bbf7d0; --r-cultural-bg: #f5f3ff; --r-cultural-fg: #6d28d9; --r-cultural-border: #ddd6fe;
+  --r-norespect-bg: #fef2f2; --r-norespect-fg: #dc2626; --r-norespect-border: #fca5a5; --r-other-bg: #f8fafc; --r-other-fg: #475569; --r-other-border: #e2e8f0;
 }
-
 * { box-sizing: border-box; margin: 0; padding: 0; }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes fadeInUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
 @keyframes gradientShift { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
-@keyframes emblemGlow {
-  0%, 100% { box-shadow: 0 0 16px rgba(var(--primary-rgb),0.45), 0 0 0 2px rgba(var(--primary-rgb),0.15); transform: scale(1); }
-  50%      { box-shadow: 0 0 32px rgba(var(--primary-rgb),0.85), 0 0 0 3px rgba(var(--primary-rgb),0.35); transform: scale(1.06); }
-}
+@keyframes emblemGlow { 0%, 100% { box-shadow: 0 0 16px rgba(var(--primary-rgb),0.45), 0 0 0 2px rgba(var(--primary-rgb),0.15); transform: scale(1); } 50% { box-shadow: 0 0 32px rgba(var(--primary-rgb),0.85), 0 0 0 3px rgba(var(--primary-rgb),0.35); transform: scale(1.06); } }
 @keyframes emblemRing { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-@keyframes emblemFloat {
-  0%, 100% { transform: translateY(0) rotate(-3deg); }
-  50%      { transform: translateY(-2px) rotate(3deg); }
-}
-@keyframes iconBounce {
-  0%, 100% { transform: scale(1.1) translateY(0); }
-  50%      { transform: scale(1.1) translateY(-3px); }
-}
-@keyframes sideIn {
-  from { opacity: 0; transform: translateX(-14px); }
-  to   { opacity: 1; transform: translateX(0); }
-}
-@keyframes sideGlow {
-  0%, 100% { transform: rotate(0deg) scale(1); }
-  50%      { transform: rotate(180deg) scale(1.15); }
-}
-
-body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  background: var(--bg);
-  background-image: radial-gradient(ellipse at 0% 0%, rgba(var(--primary-rgb),0.05), transparent 45%),
-                    radial-gradient(ellipse at 100% 100%, rgba(var(--primary-rgb),0.03), transparent 45%);
-  background-attachment: fixed;
-  color: var(--text); min-height: 100vh; line-height: 1.5;
-  -webkit-font-smoothing: antialiased; animation: fadeIn 0.4s ease;
-  transition: background-color 0.3s, color 0.3s;
-}
+@keyframes emblemFloat { 0%, 100% { transform: translateY(0) rotate(-3deg); } 50% { transform: translateY(-2px) rotate(3deg); } }
+@keyframes iconBounce { 0%, 100% { transform: scale(1.1) translateY(0); } 50% { transform: scale(1.1) translateY(-3px); } }
+@keyframes sideIn { from { opacity: 0; transform: translateX(-14px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes sideGlow { 0%, 100% { transform: rotate(0deg) scale(1); } 50% { transform: rotate(180deg) scale(1.15); } }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; background: var(--bg); background-image: radial-gradient(ellipse at 0% 0%, rgba(var(--primary-rgb),0.05), transparent 45%), radial-gradient(ellipse at 100% 100%, rgba(var(--primary-rgb),0.03), transparent 45%); background-attachment: fixed; color: var(--text); min-height: 100vh; line-height: 1.5; -webkit-font-smoothing: antialiased; animation: fadeIn 0.4s ease; transition: background-color 0.3s, color 0.3s; }
 .container { max-width: 1320px; margin: 0 auto; padding: 24px 20px 60px; }
-
-.header {
-  position: relative;
-  background: linear-gradient(135deg, #1a2040 0%, #201a40 100%);
-  border: 1px solid rgba(var(--primary-rgb),0.2);
-  border-radius: var(--radius); padding: 24px 30px; margin-bottom: 22px;
-  overflow: hidden; box-shadow: var(--shadow-lg);
-  display: flex; flex-direction: column; justify-content: center; min-height: 220px;
-}
-.header::before {
-  content: ''; position: absolute; inset: 0;
-  background:
-    radial-gradient(circle at 20% 30%, rgba(var(--primary-rgb),0.35), transparent 45%),
-    radial-gradient(circle at 80% 70%, rgba(167,139,250,0.28), transparent 45%);
-  background-size: 200% 200%;
-  animation: gradientShift 10s ease-in-out infinite;
-  pointer-events: none;
-}
+.header { position: relative; background: linear-gradient(135deg, #1a2040 0%, #201a40 100%); border: 1px solid rgba(var(--primary-rgb),0.2); border-radius: var(--radius); padding: 24px 30px; margin-bottom: 22px; overflow: hidden; box-shadow: var(--shadow-lg); display: flex; flex-direction: column; justify-content: center; min-height: 220px; }
+.header::before { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at 20% 30%, rgba(var(--primary-rgb),0.35), transparent 45%), radial-gradient(circle at 80% 70%, rgba(167,139,250,0.28), transparent 45%); background-size: 200% 200%; animation: gradientShift 10s ease-in-out infinite; pointer-events: none; }
 .header > * { position: relative; z-index: 1; }
-.school-badge {
-  display: flex; align-items: center; gap: 16px;
-  margin-bottom: 16px; padding-bottom: 16px;
-  border-bottom: 1px solid rgba(255,255,255,0.1);
-}
-.school-emblem {
-  position: relative; width: 56px; height: 56px; flex-shrink: 0;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--primary), #a78bfa);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 28px;
-  animation: emblemGlow 3s ease-in-out infinite;
-}
-.school-emblem::before {
-  content: ''; position: absolute; inset: -5px; border-radius: 50%;
-  background: conic-gradient(from 0deg, transparent 0deg, rgba(255,255,255,0.7) 90deg, transparent 180deg, rgba(255,255,255,0.7) 270deg, transparent 360deg);
-  animation: emblemRing 5s linear infinite;
-  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px));
-          mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px));
-  pointer-events: none;
-}
+.school-badge { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+.school-emblem { position: relative; width: 56px; height: 56px; flex-shrink: 0; border-radius: 50%; background: linear-gradient(135deg, var(--primary), #a78bfa); display: flex; align-items: center; justify-content: center; font-size: 28px; animation: emblemGlow 3s ease-in-out infinite; }
+.school-emblem::before { content: ''; position: absolute; inset: -5px; border-radius: 50%; background: conic-gradient(from 0deg, transparent 0deg, rgba(255,255,255,0.7) 90deg, transparent 180deg, rgba(255,255,255,0.7) 270deg, transparent 360deg); animation: emblemRing 5s linear infinite; -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px)); mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px)); pointer-events: none; }
 .school-emblem span { display: inline-block; animation: emblemFloat 4s ease-in-out infinite; position: relative; z-index: 1; }
 .school-name { font-size: 22px; font-weight: 800; color: #ffffff; line-height: 1.3; letter-spacing: -0.2px; text-shadow: 0 2px 10px rgba(0,0,0,0.3); }
-
 .layout { display: flex; gap: 22px; align-items: flex-start; }
 .main { flex: 1; min-width: 0; }
-
-.sidebar {
-  width: 260px; flex-shrink: 0;
-  position: sticky; top: 20px; align-self: flex-start; z-index: 10;
-  animation: sideIn 0.5s cubic-bezier(0.34, 1.3, 0.64, 1) both;
-  display: flex; flex-direction: column; gap: 16px;
-}
-
-.side-brand {
-  display: flex; align-items: center; gap: 13px;
-  padding: 16px 18px;
-  background: linear-gradient(135deg, var(--card) 0%, var(--card-hover) 100%);
-  border: 1px solid var(--border);
-  border-radius: 18px;
-  box-shadow: var(--shadow-lg);
-  position: relative; overflow: hidden;
-}
-.side-brand::before {
-  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
-  background: linear-gradient(90deg, transparent, var(--primary), transparent);
-  opacity: 0.55;
-}
-.side-brand-icon {
-  width: 44px; height: 44px; flex-shrink: 0;
-  display: flex; align-items: center; justify-content: center;
-  border-radius: 13px;
-  background: linear-gradient(145deg, var(--primary), #9b8cff);
-  color: #fff; font-size: 21px;
-  box-shadow: 0 8px 18px rgba(var(--primary-rgb), .38);
-}
+.sidebar { width: 260px; flex-shrink: 0; position: sticky; top: 20px; align-self: flex-start; z-index: 10; animation: sideIn 0.5s cubic-bezier(0.34, 1.3, 0.64, 1) both; display: flex; flex-direction: column; gap: 16px; }
+.side-brand { display: flex; align-items: center; gap: 13px; padding: 16px 18px; background: linear-gradient(135deg, var(--card) 0%, var(--card-hover) 100%); border: 1px solid var(--border); border-radius: 18px; box-shadow: var(--shadow-lg); position: relative; overflow: hidden; }
+.side-brand::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, transparent, var(--primary), transparent); opacity: 0.55; }
+.side-brand-icon { width: 44px; height: 44px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border-radius: 13px; background: linear-gradient(145deg, var(--primary), #9b8cff); color: #fff; font-size: 21px; box-shadow: 0 8px 18px rgba(var(--primary-rgb), .38); }
 .side-brand-text { flex: 1; min-width: 0; }
-.side-brand-title {
-  font-size: 15px; font-weight: 750; letter-spacing: -0.3px;
-  color: var(--text); line-height: 1.2;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.side-brand-class {
-  font-size: 11px; font-weight: 600; color: var(--muted);
-  margin-top: 3px; letter-spacing: 0.2px;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-
-.side-menu {
-  display: flex; flex-direction: column; gap: 4px;
-  background: var(--card); border-radius: 18px; padding: 14px;
-  border: 1px solid var(--border); box-shadow: var(--shadow-lg);
-  position: relative; overflow: hidden;
-}
-.side-menu::before {
-  content: ''; position: absolute; top: -40%; left: -40%; width: 180%; height: 180%;
-  background: radial-gradient(circle at 30% 30%, rgba(var(--primary-rgb),0.08), transparent 50%);
-  pointer-events: none; animation: sideGlow 14s ease-in-out infinite;
-}
-.side-header {
-  display: flex; align-items: center; gap: 8px; padding: 6px 10px 12px;
-  font-size: 10px; font-weight: 700; letter-spacing: 1.6px; text-transform: uppercase;
-  color: var(--muted); border-bottom: 1px solid var(--border); margin-bottom: 6px;
-  position: relative; z-index: 1;
-}
+.side-brand-title { font-size: 15px; font-weight: 750; letter-spacing: -0.3px; color: var(--text); line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.side-brand-class { font-size: 11px; font-weight: 600; color: var(--muted); margin-top: 3px; letter-spacing: 0.2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.side-menu { display: flex; flex-direction: column; gap: 4px; background: var(--card); border-radius: 18px; padding: 14px; border: 1px solid var(--border); box-shadow: var(--shadow-lg); position: relative; overflow: hidden; }
+.side-menu::before { content: ''; position: absolute; top: -40%; left: -40%; width: 180%; height: 180%; background: radial-gradient(circle at 30% 30%, rgba(var(--primary-rgb),0.08), transparent 50%); pointer-events: none; animation: sideGlow 14s ease-in-out infinite; }
+.side-header { display: flex; align-items: center; gap: 8px; padding: 6px 10px 12px; font-size: 10px; font-weight: 700; letter-spacing: 1.6px; text-transform: uppercase; color: var(--muted); border-bottom: 1px solid var(--border); margin-bottom: 6px; position: relative; z-index: 1; }
 .side-header-icon { color: var(--primary); font-size: 9px; animation: pulse 2s ease-in-out infinite; }
-.side-btn {
-  display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px;
-  border-radius: 12px; background: transparent; border: none;
-  color: var(--muted); font-size: 14px; font-weight: 600; font-family: inherit;
-  cursor: pointer; text-align: left; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  position: relative; overflow: hidden; z-index: 1;
-}
-.side-btn::before {
-  content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%);
-  width: 3px; height: 0; background: var(--primary); border-radius: 0 3px 3px 0;
-  transition: height 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 0 12px var(--primary);
-}
+.side-btn { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px; border-radius: 12px; background: transparent; border: none; color: var(--muted); font-size: 14px; font-weight: 600; font-family: inherit; cursor: pointer; text-align: left; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); position: relative; overflow: hidden; z-index: 1; }
+.side-btn::before { content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%); width: 3px; height: 0; background: var(--primary); border-radius: 0 3px 3px 0; transition: height 0.35s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 0 12px var(--primary); }
 .side-btn:hover { color: var(--text); transform: translateX(2px); }
 .side-btn:hover .side-icon-wrap { transform: scale(1.06); }
-.side-btn.active {
-  color: var(--text); background: var(--card-hover);
-  box-shadow: inset 0 0 0 1px var(--border);
-}
+.side-btn.active { color: var(--text); background: var(--card-hover); box-shadow: inset 0 0 0 1px var(--border); }
 .side-btn.active::before { height: 32px; }
 .side-btn.active .side-icon-wrap { background: var(--primary); color: white; box-shadow: 0 0 18px rgba(var(--primary-rgb),0.3); }
 .side-btn.active .side-icon { animation: iconBounce 2.4s ease-in-out infinite; }
-.side-icon-wrap {
-  width: 38px; height: 38px; border-radius: 11px;
-  display: flex; align-items: center; justify-content: center; font-size: 18px;
-  flex-shrink: 0; transition: all 0.3s ease; position: relative;
-  background: var(--input-bg); color: var(--primary);
-}
+.side-icon-wrap { width: 38px; height: 38px; border-radius: 11px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; transition: all 0.3s ease; position: relative; background: var(--input-bg); color: var(--primary); }
 .side-icon { display: inline-block; transition: transform 0.3s ease; }
 .side-body { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
 .side-label { font-size: 14px; font-weight: 600; color: inherit; line-height: 1.2; }
 .side-sub { font-size: 11px; font-weight: 500; line-height: 1.25; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-.side-tools {
-  background: var(--card); border-radius: 18px; padding: 16px;
-  border: 1px solid var(--border); box-shadow: var(--shadow-lg);
-  display: flex; flex-direction: column; gap: 12px;
-}
+.side-tools { background: var(--card); border-radius: 18px; padding: 16px; border: 1px solid var(--border); box-shadow: var(--shadow-lg); display: flex; flex-direction: column; gap: 12px; }
 .tools-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 4px; }
 .theme-toggles { display: flex; gap: 8px; }
-.theme-btn {
-  flex: 1; padding: 8px; border-radius: 8px; background: var(--input-bg);
-  border: 1px solid var(--border); color: var(--text); cursor: pointer;
-  font-family: inherit; font-size: 13px; font-weight: 600; transition: all 0.2s;
-}
+.theme-btn { flex: 1; padding: 8px; border-radius: 8px; background: var(--input-bg); border: 1px solid var(--border); color: var(--text); cursor: pointer; font-family: inherit; font-size: 13px; font-weight: 600; transition: all 0.2s; }
 .theme-btn:hover { background: var(--card-hover); border-color: var(--border-hover); }
 .theme-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
 .color-palette { display: flex; gap: 8px; justify-content: space-between; }
-.color-dot {
-  width: 28px; height: 28px; border-radius: 50%; cursor: pointer;
-  border: 2px solid transparent; transition: transform 0.2s, border-color 0.2s;
-}
+.color-dot { width: 28px; height: 28px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; transition: transform 0.2s, border-color 0.2s; }
 .color-dot:hover { transform: scale(1.15); }
 .color-dot.active { border-color: var(--text); transform: scale(1.15); }
-
 .tab-panel { display: none; animation: fadeIn 0.3s ease; }
 .tab-panel.active { display: block; }
-
 .card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); border: 1px solid var(--border); overflow: hidden; animation: fadeInUp 0.35s ease both; margin-bottom: 20px; }
-.file-bar {
-  display: flex; justify-content: space-between; align-items: center; gap: 12px;
-  padding: 12px 16px; margin-bottom: 16px;
-  background: var(--card); border-radius: 12px; border: 1px solid var(--border); box-shadow: var(--shadow);
-  flex-wrap: wrap;
-}
+.file-bar { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 16px; margin-bottom: 16px; background: var(--card); border-radius: 12px; border: 1px solid var(--border); box-shadow: var(--shadow); flex-wrap: wrap; }
 .file-bar-left { display: flex; align-items: center; gap: 10px; font-size: 14px; }
 .file-bar-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .status-dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
 .status-dot.connected { background: var(--success); box-shadow: 0 0 0 3px rgba(74,222,128,0.15), 0 0 12px rgba(74,222,128,0.6); }
-
+.status-dot.saving { background: #fbbf24; box-shadow: 0 0 0 3px rgba(251,191,36,0.15); animation: pulse 1s ease-in-out infinite; }
 .date-controls { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 16px; }
 .date-nav { display: flex; align-items: center; gap: 6px; background: var(--card); padding: 6px 10px; border-radius: 12px; border: 1px solid var(--border); }
 .date-nav input[type="date"] { border: none; background: transparent; color: var(--text); font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer; outline: none; padding: 4px; }
@@ -261,13 +107,8 @@ body {
 body.light-theme .date-nav input[type="date"]::-webkit-calendar-picker-indicator { filter: none; }
 .btn-nav { background: var(--input-bg); border: 1px solid var(--border); color: var(--text); padding: 6px 12px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
 .btn-nav:hover { background: var(--border-hover); }
-
 .mini-calendar { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 16px; }
-.mini-day {
-  min-width: 44px; padding: 6px 4px; border-radius: 10px; background: var(--card);
-  border: 1px solid var(--border); display: flex; flex-direction: column; align-items: center;
-  gap: 4px; cursor: pointer; transition: all 0.2s;
-}
+.mini-day { min-width: 44px; padding: 6px 4px; border-radius: 10px; background: var(--card); border: 1px solid var(--border); display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; transition: all 0.2s; }
 .mini-day:hover { border-color: var(--primary); }
 .mini-day.active { border-color: var(--primary); box-shadow: 0 0 0 2px var(--primary); background: var(--card-hover); }
 .mini-dow { font-size: 10px; color: var(--muted); text-transform: uppercase; font-weight: 700; }
@@ -277,20 +118,23 @@ body.light-theme .date-nav input[type="date"]::-webkit-calendar-picker-indicator
 .mini-day.is-weekend { opacity: 0.5; pointer-events: none; background: var(--input-bg); }
 .mini-day.is-special { border-color: var(--primary); }
 .mini-day.is-special .mini-num::after { content: '🔔'; font-size: 9px; margin-left: 2px; }
-
 .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 24px; }
 .stat { background: var(--card); border-radius: var(--radius); padding: 16px 18px; box-shadow: var(--shadow); border: 1px solid var(--border); transition: transform 0.2s; }
 .stat:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
 .stat .label { font-size: 12px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; }
 .stat .value { font-size: 28px; font-weight: 700; margin-top: 4px; }
-
+.search-bar { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+.search-input { flex: 1; min-width: 200px; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border); background: var(--card); color: var(--text); font-family: inherit; font-size: 14px; }
+.search-input:focus { outline: none; border-color: var(--primary); }
+.bulk-panel { display: none; gap: 10px; padding: 12px 16px; margin-bottom: 16px; background: rgba(var(--primary-rgb), 0.1); border: 1px solid rgba(var(--primary-rgb), 0.3); border-radius: 12px; align-items: center; flex-wrap: wrap; }
+.bulk-panel.visible { display: flex; }
+.bulk-info { font-size: 13px; font-weight: 600; color: var(--primary); }
 .table-wrap { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; border-spacing: 0; }
 thead th { background: var(--input-bg); font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); font-weight: 700; text-align: left; padding: 14px 18px; border-bottom: 1px solid var(--border); white-space: nowrap; }
 tbody td { padding: 12px 18px; border-bottom: 1px solid var(--border); vertical-align: top; }
 tbody tr { transition: background-color 0.2s; }
 tbody tr:hover { background-color: var(--card-hover); }
-
 tr.r-family { background: var(--r-family-bg); }
 tr.r-health { background: var(--r-health-bg); }
 tr.r-medical { background: var(--r-medical-bg); }
@@ -299,81 +143,42 @@ tr.r-sport { background: var(--r-sport-bg); }
 tr.r-cultural { background: var(--r-cultural-bg); }
 tr.r-norespect { background: var(--r-norespect-bg); }
 tr.r-other { background: var(--r-other-bg); }
-
 .student-name { font-weight: 500; }
-.student-name .name-text { margin-right: 6px; }
-.btn-quick-interval {
-  background: transparent; border: 1px solid transparent; padding: 2px 7px;
-  border-radius: 6px; cursor: pointer; font-size: 13px; opacity: 0.35;
-  transition: all 0.2s; color: var(--primary); vertical-align: middle;
-}
+.student-name .name-text { margin-right: 6px; cursor: pointer; }
+.student-name .name-text:hover { color: var(--primary); text-decoration: underline; }
+.btn-quick-interval { background: transparent; border: 1px solid transparent; padding: 2px 7px; border-radius: 6px; cursor: pointer; font-size: 13px; opacity: 0.35; transition: all 0.2s; color: var(--primary); vertical-align: middle; }
 tbody tr:hover .btn-quick-interval { opacity: 1; border-color: var(--border); }
 .btn-quick-interval:hover { background: rgba(var(--primary-rgb),0.15); border-color: var(--primary); }
-
+.note-icon { font-size: 12px; cursor: pointer; opacity: 0.6; margin-left: 4px; }
+.note-icon:hover { opacity: 1; }
 .badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; white-space: nowrap; }
 .badge.present { background: rgba(74,222,128,0.15); color: var(--success); }
 .badge.absent { background: rgba(248,113,113,0.15); color: var(--danger); }
-
-.reason-select {
-  padding: 8px 34px 8px 12px; border-radius: 10px; border: 1.5px solid var(--border);
-  background-color: var(--input-bg); color: var(--text);
-  font-size: 14px; font-weight: 500; font-family: inherit; cursor: pointer;
-  width: 100%; min-width: 220px; appearance: none; -webkit-appearance: none;
-  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238891a5' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'/%3e%3c/svg%3e");
-  background-repeat: no-repeat; background-position: right 12px center; transition: all 0.2s;
-}
+.reason-select { padding: 8px 34px 8px 12px; border-radius: 10px; border: 1.5px solid var(--border); background-color: var(--input-bg); color: var(--text); font-size: 14px; font-weight: 500; font-family: inherit; cursor: pointer; width: 100%; min-width: 220px; appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238891a5' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'/%3e%3c/svg%3e"); background-repeat: no-repeat; background-position: right 12px center; transition: all 0.2s; }
 .reason-select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(var(--primary-rgb),0.2); }
-.reason-select.v-family  { border-color: var(--r-family-border);  background-color: var(--r-family-bg);  color: var(--r-family-fg);  font-weight: 600; }
-.reason-select.v-health  { border-color: var(--r-health-border);  background-color: var(--r-health-bg);  color: var(--r-health-fg);  font-weight: 600; }
+.reason-select.v-family { border-color: var(--r-family-border); background-color: var(--r-family-bg); color: var(--r-family-fg); font-weight: 600; }
+.reason-select.v-health { border-color: var(--r-health-border); background-color: var(--r-health-bg); color: var(--r-health-fg); font-weight: 600; }
 .reason-select.v-medical { border-color: var(--r-medical-border); background-color: var(--r-medical-bg); color: var(--r-medical-fg); font-weight: 600; }
 .reason-select.v-ozdorovlenie { border-color: var(--r-ozdorovlenie-border); background-color: var(--r-ozdorovlenie-bg); color: var(--r-ozdorovlenie-fg); font-weight: 600; }
-.reason-select.v-sport   { border-color: var(--r-sport-border);   background-color: var(--r-sport-bg);   color: var(--r-sport-fg);   font-weight: 600; }
-.reason-select.v-cultural{ border-color: var(--r-cultural-border);background-color: var(--r-cultural-bg);color: var(--r-cultural-fg);font-weight: 600; }
-.reason-select.v-norespect{border-color: var(--r-norespect-border);background-color: var(--r-norespect-bg);color: var(--r-norespect-fg);font-weight: 700; }
-.reason-select.v-other   { border-color: var(--r-other-border);   background-color: var(--r-other-bg);   color: var(--r-other-fg);   font-weight: 600; }
-
-.compact-info {
-  display: flex; align-items: center; gap: 8px; margin-top: 8px;
-  font-size: 12px; color: var(--muted); flex-wrap: wrap;
-}
-.compact-hint {
-  padding: 3px 8px; background: var(--card-hover); border-radius: 6px;
-  font-size: 11px; font-weight: 600; color: var(--text);
-}
-.btn-expand-row {
-  background: transparent; border: 1px solid var(--border); color: var(--primary);
-  padding: 3px 10px; border-radius: 6px; font-size: 11px; font-weight: 600;
-  cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 4px;
-}
+.reason-select.v-sport { border-color: var(--r-sport-border); background-color: var(--r-sport-bg); color: var(--r-sport-fg); font-weight: 600; }
+.reason-select.v-cultural { border-color: var(--r-cultural-border); background-color: var(--r-cultural-bg); color: var(--r-cultural-fg); font-weight: 600; }
+.reason-select.v-norespect { border-color: var(--r-norespect-border); background-color: var(--r-norespect-bg); color: var(--r-norespect-fg); font-weight: 700; }
+.reason-select.v-other { border-color: var(--r-other-border); background-color: var(--r-other-bg); color: var(--r-other-fg); font-weight: 600; }
+.compact-info { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 12px; color: var(--muted); flex-wrap: wrap; }
+.compact-hint { padding: 3px 8px; background: var(--card-hover); border-radius: 6px; font-size: 11px; font-weight: 600; color: var(--text); }
+.btn-expand-row { background: transparent; border: 1px solid var(--border); color: var(--primary); padding: 3px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 4px; }
 .btn-expand-row:hover { background: rgba(var(--primary-rgb),0.1); border-color: var(--primary); }
-
 .row-details { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
 .row-details-actions { display: flex; gap: 8px; flex-wrap: wrap; }
-.btn-collapse-row {
-  background: transparent; border: 1px solid var(--border); color: var(--muted);
-  padding: 3px 10px; border-radius: 6px; font-size: 11px; font-weight: 600;
-  cursor: pointer; transition: all 0.2s;
-}
+.btn-collapse-row { background: transparent; border: 1px solid var(--border); color: var(--muted); padding: 3px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
 .btn-collapse-row:hover { background: var(--card-hover); color: var(--text); }
-
 .partial-inputs { display: inline-flex; align-items: center; gap: 4px; }
-.partial-inputs input {
-  width: 54px; padding: 5px 6px; border-radius: 7px; border: 1.5px solid var(--border);
-  background: var(--input-bg); color: var(--text); font-family: inherit; font-size: 13px; font-weight: 600; text-align: center;
-}
+.partial-inputs input { width: 54px; padding: 5px 6px; border-radius: 7px; border: 1.5px solid var(--border); background: var(--input-bg); color: var(--text); font-family: inherit; font-size: 13px; font-weight: 600; text-align: center; }
 .partial-inputs input:focus { outline: none; border-color: var(--primary); }
 .partial-inputs span { color: var(--muted); font-size: 13px; }
-.partial-hint { display: block; font-size: 11px; color: var(--muted); margin-top: 4px; }
-.partial-hint.special { color: var(--primary); font-weight: 600; }
-
-.comment-input {
-  display: block; width: 100%; padding: 6px 10px; border-radius: 8px;
-  border: 1px solid var(--border); background: var(--input-bg); color: var(--text);
-  font-family: inherit; font-size: 12px; transition: all 0.2s;
-}
+.comment-input { display: block; width: 100%; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text); font-family: inherit; font-size: 12px; transition: all 0.2s; }
 .comment-input:focus { outline: none; border-color: var(--primary); background: var(--card); }
 .comment-input::placeholder { color: var(--muted); font-style: italic; }
-
 .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
 button { font-family: inherit; font-size: 14px; font-weight: 600; border: none; padding: 10px 18px; border-radius: 10px; cursor: pointer; transition: all 0.2s ease; display: inline-flex; align-items: center; gap: 6px; color: var(--text); }
 .btn-primary { background: var(--primary); color: white; box-shadow: 0 2px 12px rgba(var(--primary-rgb),0.3); }
@@ -386,7 +191,6 @@ button { font-family: inherit; font-size: 14px; font-weight: 600; border: none; 
 .btn-collapse:hover { color: var(--text); background: var(--card-hover); }
 .collapse-icon { display: inline-block; font-size: 10px; transition: transform 0.3s; }
 .report-block.collapsed .collapse-icon { transform: rotate(180deg); }
-
 .modal-backdrop { position: fixed; inset: 0; background: rgba(5,8,15,0.7); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 20px; opacity: 0; visibility: hidden; transition: all 0.2s; }
 .modal-backdrop.open { opacity: 1; visibility: visible; }
 .modal { background: var(--card); border-radius: 18px; padding: 28px; max-width: 560px; width: 100%; max-height: 85vh; overflow-y: auto; box-shadow: 0 25px 70px rgba(0,0,0,0.3); border: 1px solid var(--border); transform: scale(0.94); transition: transform 0.25s; }
@@ -396,34 +200,25 @@ button { font-family: inherit; font-size: 14px; font-weight: 600; border: none; 
 .modal textarea { width: 100%; min-height: 250px; padding: 14px; border-radius: 12px; border: 1.5px solid var(--border); background: var(--input-bg); color: var(--text); font-family: ui-monospace, monospace; font-size: 14px; line-height: 1.6; resize: vertical; }
 .modal textarea:focus { outline: none; border-color: var(--primary); }
 .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 18px; flex-wrap: wrap; }
-
 .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
 .form-group label { font-size: 13px; font-weight: 600; color: var(--muted); }
-.form-group select, .form-group input[type="text"], .form-group input[type="date"] {
-  padding: 10px 12px; border-radius: 10px; border: 1.5px solid var(--border);
-  background: var(--input-bg); color: var(--text); font-family: inherit;
-  font-size: 14px; font-weight: 500; width: 100%;
-  transition: all 0.2s;
-}
-.form-group select:focus, .form-group input:focus {
-  outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(var(--primary-rgb),0.2);
-}
+.form-group select, .form-group input[type="text"], .form-group input[type="date"], .form-group input[type="password"] { padding: 10px 12px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--input-bg); color: var(--text); font-family: inherit; font-size: 14px; font-weight: 500; width: 100%; transition: all 0.2s; }
+.form-group select:focus, .form-group input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(var(--primary-rgb),0.2); }
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .checkbox-row { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--text); margin-bottom: 14px; cursor: pointer; padding: 8px 0; }
 .checkbox-row input { width: 18px; height: 18px; cursor: pointer; accent-color: var(--primary); }
 .warning-box { padding: 12px 14px; background: rgba(251,191,36,0.1); border: 1px solid rgba(251,191,36,0.3); border-radius: 10px; color: #fbbf24; font-size: 13px; line-height: 1.4; margin-bottom: 14px; display: none; }
-
+.alert-banner { display: none; background: rgba(251,191,36,0.1); border: 1px solid rgba(251,191,36,0.3); border-radius: 12px; padding: 12px 16px; margin-bottom: 16px; color: #fbbf24; font-size: 13px; font-weight: 600; align-items: center; gap: 10px; }
+.alert-banner.visible { display: flex; }
 .settings-card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); border: 1px solid var(--border); padding: 24px; margin-bottom: 20px; }
 .settings-card h2 { font-size: 18px; margin-bottom: 8px; }
 .settings-card p.desc { color: var(--muted); font-size: 14px; margin-bottom: 16px; }
 .settings-card input[type="text"] { padding: 10px 14px; border-radius: 9px; border: 1.5px solid var(--border); background: var(--input-bg); color: var(--text); font-family: inherit; font-size: 14px; font-weight: 600; width: 100%; max-width: 320px; }
 .settings-card input[type="text"]:focus { outline: none; border-color: var(--primary); }
-
 .quarter-row { display: grid; grid-template-columns: 120px 1fr 1fr; gap: 12px; align-items: center; margin-bottom: 10px; }
 .quarter-row label { font-weight: 600; font-size: 14px; }
 .quarter-row input[type="date"] { padding: 8px 12px; border-radius: 9px; border: 1.5px solid var(--border); background: var(--input-bg); color: var(--text); font-family: inherit; font-weight: 600; cursor: pointer; }
 .quarter-row input[type="date"]:focus { outline: none; border-color: var(--primary); }
-
 .schedule-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 16px; }
 .schedule-item { display: flex; flex-direction: column; gap: 4px; }
 .schedule-item label { font-size: 13px; font-weight: 600; }
@@ -431,81 +226,36 @@ button { font-family: inherit; font-size: 14px; font-weight: 600; border: none; 
 .schedule-item input[type="number"]:focus { outline: none; border-color: var(--primary); }
 .settings-card textarea { width: 100%; min-height: 120px; padding: 12px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--input-bg); color: var(--text); font-family: ui-monospace, monospace; font-size: 14px; resize: vertical; }
 .settings-card textarea:focus { outline: none; border-color: var(--primary); }
-
 .special-add-row { display: grid; grid-template-columns: 1fr 130px auto; gap: 10px; align-items: end; margin-bottom: 16px; }
 .special-add-row > div { display: flex; flex-direction: column; gap: 6px; }
 .special-add-row label { font-size: 12px; font-weight: 600; color: var(--muted); }
-.special-add-row input[type="date"], .special-add-row input[type="number"] {
-  padding: 8px 12px; border-radius: 9px; border: 1.5px solid var(--border);
-  background: var(--input-bg); color: var(--text); font-family: inherit; font-weight: 600; font-size: 14px;
-}
+.special-add-row input[type="date"], .special-add-row input[type="number"] { padding: 8px 12px; border-radius: 9px; border: 1.5px solid var(--border); background: var(--input-bg); color: var(--text); font-family: inherit; font-weight: 600; font-size: 14px; }
 .special-add-row input:focus { outline: none; border-color: var(--primary); }
 .special-list { display: flex; flex-direction: column; gap: 8px; }
-.special-item {
-  display: flex; align-items: center; gap: 12px;
-  padding: 10px 14px; background: var(--input-bg); border-radius: 10px;
-  border: 1px solid var(--border);
-}
+.special-item { display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: var(--input-bg); border-radius: 10px; border: 1px solid var(--border); }
 .special-item-date { font-weight: 700; font-size: 14px; color: var(--text); }
 .special-item-dow { font-size: 12px; color: var(--muted); }
 .special-item-lessons { margin-left: auto; font-size: 13px; color: var(--primary); font-weight: 600; }
 .special-item-del { padding: 4px 10px; font-size: 12px; background: rgba(248,113,113,0.1); color: var(--danger); border: 1px solid rgba(248,113,113,0.3); border-radius: 6px; cursor: pointer; }
 .special-item-del:hover { background: rgba(248,113,113,0.2); }
 .special-empty { text-align: center; padding: 16px; color: var(--muted); font-size: 13px; }
-
-.report-tabs {
-  display: flex; gap: 6px; padding: 6px; background: var(--card);
-  border-radius: 14px; border: 1px solid var(--border); box-shadow: var(--shadow);
-  margin-bottom: 20px; flex-wrap: wrap; animation: fadeInUp 0.35s ease both;
-}
-.report-tab {
-  flex: 1; min-width: 160px; padding: 14px 20px; border-radius: 10px;
-  background: transparent; border: none; color: var(--muted);
-  font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  display: flex; align-items: center; justify-content: center; gap: 8px;
-  position: relative; overflow: hidden;
-}
+.report-tabs { display: flex; gap: 6px; padding: 6px; background: var(--card); border-radius: 14px; border: 1px solid var(--border); box-shadow: var(--shadow); margin-bottom: 20px; flex-wrap: wrap; animation: fadeInUp 0.35s ease both; }
+.report-tab { flex: 1; min-width: 160px; padding: 14px 20px; border-radius: 10px; background: transparent; border: none; color: var(--muted); font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); display: flex; align-items: center; justify-content: center; gap: 8px; position: relative; overflow: hidden; }
 .report-tab:hover { background: var(--card-hover); color: var(--text); }
 .report-tab.active { background: var(--primary); color: white; box-shadow: 0 4px 16px rgba(var(--primary-rgb),0.4); }
 .report-tab .tab-emoji { font-size: 16px; display: inline-block; }
 .report-tab .tab-label { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; }
 .report-tab .tab-title { font-size: 14px; font-weight: 700; }
 .report-tab .tab-sub { font-size: 11px; font-weight: 500; opacity: 0.75; }
-
 .report-pane { display: none; animation: fadeIn 0.3s ease; }
 .report-pane.active { display: block; }
-
-.report-controls {
-  display: flex; gap: 14px; align-items: center; flex-wrap: wrap;
-  margin-bottom: 20px; padding: 16px 20px;
-  background: var(--card); border-radius: 12px;
-  box-shadow: var(--shadow); border: 1px solid var(--border);
-}
+.report-controls { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; margin-bottom: 20px; padding: 16px 20px; background: var(--card); border-radius: 12px; box-shadow: var(--shadow); border: 1px solid var(--border); }
 .report-controls label { font-size: 13px; font-weight: 600; color: var(--muted); }
-.report-controls input[type="date"], .report-controls input[type="month"] {
-  padding: 8px 12px; border-radius: 9px; border: 1.5px solid var(--border);
-  background: var(--input-bg); color: var(--text); font-family: inherit;
-  font-weight: 600; cursor: pointer;
-}
+.report-controls input[type="date"], .report-controls input[type="month"] { padding: 8px 12px; border-radius: 9px; border: 1.5px solid var(--border); background: var(--input-bg); color: var(--text); font-family: inherit; font-weight: 600; cursor: pointer; }
 .report-controls input:focus { outline: none; border-color: var(--primary); }
-.quarter-select {
-  padding: 8px 32px 8px 12px; border-radius: 9px; border: 1.5px solid var(--border);
-  background: var(--input-bg); color: var(--text); font-family: inherit;
-  font-weight: 600; cursor: pointer; appearance: none;
-  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238891a5' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'/%3e%3c/svg%3e");
-  background-repeat: no-repeat; background-position: right 12px center;
-}
+.quarter-select { padding: 8px 32px 8px 12px; border-radius: 9px; border: 1.5px solid var(--border); background: var(--input-bg); color: var(--text); font-family: inherit; font-weight: 600; cursor: pointer; appearance: none; background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238891a5' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'/%3e%3c/svg%3e"); background-repeat: no-repeat; background-position: right 12px center; }
 .quarter-select:focus { outline: none; border-color: var(--primary); }
-
-.edu-days-badge {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 6px 12px; border-radius: 8px;
-  background: rgba(var(--primary-rgb),0.1);
-  border: 1px solid rgba(var(--primary-rgb),0.25);
-  font-size: 12px; font-weight: 600; color: var(--primary);
-}
-
+.edu-days-badge { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 8px; background: rgba(var(--primary-rgb),0.1); border: 1px solid rgba(var(--primary-rgb),0.25); font-size: 12px; font-weight: 600; color: var(--primary); }
 .report-block { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); border: 1px solid var(--border); padding: 22px 26px; margin-bottom: 20px; animation: fadeInUp 0.35s ease both; }
 .report-title-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; margin-bottom: 6px; }
 .report-block h3 { font-size: 18px; flex: 1; }
@@ -520,58 +270,28 @@ button { font-family: inherit; font-size: 14px; font-weight: 600; border: none; 
 .report-table td.muted { color: var(--muted); }
 .report-table tr.sub td:first-child { padding-left: 32px; color: var(--muted); }
 .report-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
-
 details.students-list { margin-top: 6px; padding: 10px 14px; background: var(--input-bg); border-radius: 10px; border: 1px solid var(--border); }
 details.students-list summary { cursor: pointer; font-weight: 600; font-size: 13px; color: var(--primary); }
 details.students-list ul { margin: 8px 0 0 20px; font-size: 14px; }
-
 .exact-table th, .exact-table td { text-align: center !important; vertical-align: middle !important; border: 1px solid var(--border) !important; padding: 12px 10px !important; }
 .exact-table th { text-transform: none !important; letter-spacing: normal !important; font-size: 14px !important; color: var(--text) !important; background: var(--input-bg) !important; font-weight: 700 !important; }
-
 .empty-state { text-align: center; padding: 30px 20px; color: var(--muted); font-size: 15px; }
 .empty-state .emoji { font-size: 32px; display: block; margin-bottom: 10px; }
-
 .print-header { display: none; }
-
-.login-screen {
-  position: fixed; inset: 0; z-index: 200;
-  display: flex; align-items: center; justify-content: center;
-  background:
-    radial-gradient(ellipse at 30% 30%, rgba(109,139,255,.18), transparent 50%),
-    radial-gradient(ellipse at 70% 70%, rgba(167,139,250,.12), transparent 50%),
-    var(--bg);
-  padding: 20px;
-}
-.login-card {
-  width: 100%; max-width: 400px;
-  background: var(--card); border: 1px solid var(--border);
-  border-radius: 22px; padding: 36px 32px;
-  box-shadow: 0 30px 90px rgba(0,0,0,.4);
-}
+.login-screen { position: fixed; inset: 0; z-index: 200; display: flex; align-items: center; justify-content: center; background: radial-gradient(ellipse at 30% 30%, rgba(109,139,255,.18), transparent 50%), radial-gradient(ellipse at 70% 70%, rgba(167,139,250,.12), transparent 50%), var(--bg); padding: 20px; }
+.login-card { width: 100%; max-width: 400px; background: var(--card); border: 1px solid var(--border); border-radius: 22px; padding: 36px 32px; box-shadow: 0 30px 90px rgba(0,0,0,.4); }
 .login-card h1 { font-size: 24px; margin-bottom: 6px; letter-spacing: -.5px; }
 .login-card p { color: var(--muted); font-size: 14px; margin-bottom: 24px; }
-.login-card input {
-  width: 100%; padding: 12px 14px; border-radius: 11px;
-  border: 1.5px solid var(--border); background: var(--input-bg);
-  color: var(--text); font-family: inherit; font-size: 14px;
-  margin-bottom: 12px;
-}
+.login-card input { width: 100%; padding: 12px 14px; border-radius: 11px; border: 1.5px solid var(--border); background: var(--input-bg); color: var(--text); font-family: inherit; font-size: 14px; margin-bottom: 12px; }
 .login-card input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(var(--primary-rgb),.2); }
-.login-card button {
-  width: 100%; padding: 12px; border-radius: 11px; background: var(--primary);
-  color: white; font-weight: 700; font-size: 15px; cursor: pointer;
-  border: none; transition: all .2s;
-}
+.login-card button { width: 100%; padding: 12px; border-radius: 11px; background: var(--primary); color: white; font-weight: 700; font-size: 15px; cursor: pointer; border: none; transition: all .2s; }
 .login-card button:hover { background: var(--primary-hover); }
 .login-card button:disabled { opacity: .5; cursor: wait; }
 .login-err { color: var(--danger); font-size: 13px; min-height: 18px; margin-top: 8px; text-align: center; }
-
 @media print {
   * { color: black !important; background: transparent !important; box-shadow: none !important; text-shadow: none !important; }
   body { background: white !important; animation: none !important; }
-  .header, .sidebar, .file-bar, .stats, .actions, .report-controls, .date-controls, .mini-calendar,
-  .report-actions, .modal-backdrop, .toast, #tab-attendance, #tab-settings, .date-nav,
-  .report-block button, .school-badge, .btn-collapse, .report-tabs, .login-screen { display: none !important; }
+  .header, .sidebar, .file-bar, .stats, .actions, .report-controls, .date-controls, .mini-calendar, .report-actions, .modal-backdrop, .toast, #tab-attendance, #tab-settings, .date-nav, .report-block button, .school-badge, .btn-collapse, .report-tabs, .login-screen, .search-bar, .bulk-panel, .alert-banner { display: none !important; }
   .container { padding: 0; max-width: 100%; }
   .layout { display: block; }
   .report-block { border: 1px solid #999 !important; page-break-inside: avoid; margin-bottom: 12px; animation: none !important; padding: 16px !important; }
@@ -585,14 +305,22 @@ details.students-list ul { margin: 8px 0 0 20px; font-size: 14px; }
   body.printing-r1 #reportPane-2, body.printing-r1 #reportPane-year { display: none !important; }
   body.printing-r2 #reportPane-1, body.printing-r2 #reportPane-year { display: none !important; }
   body.printing-year #reportPane-1, body.printing-year #reportPane-2 { display: none !important; }
+  body.printing-class #tab-attendance { display: block !important; }
+  body.printing-class .search-bar, body.printing-class .bulk-panel, body.printing-class .file-bar, body.printing-class .date-controls, body.printing-class .mini-calendar, body.printing-class .stats, body.printing-class .actions, body.printing-class .alert-banner { display: none !important; }
   .report-pane { display: block !important; }
-  
   .print-header { display: block !important; text-align: center; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #000; }
   .print-header .p-school { font-size: 16px; font-weight: bold; margin-bottom: 4px; }
   .print-header .p-title { font-size: 18px; font-weight: bold; margin: 10px 0; }
   .print-header .p-meta { font-size: 14px; display: flex; justify-content: space-between; margin-top: 10px; }
+  #tab-attendance .card { border: none !important; }
+  #tab-attendance table { display: table !important; width: 100% !important; border-collapse: collapse !important; }
+  #tab-attendance thead { display: table-header-group !important; }
+  #tab-attendance tbody { display: table-row-group !important; }
+  #tab-attendance tr { display: table-row !important; border: none !important; padding: 0 !important; background: transparent !important; }
+  #tab-attendance th, #tab-attendance td { display: table-cell !important; border: 1px solid #000 !important; padding: 8px !important; text-align: left !important; }
+  #tab-attendance .reason-select, #tab-attendance .btn-quick-interval, #tab-attendance .compact-info, #tab-attendance input[type="checkbox"] { display: none !important; }
+  #tab-attendance td:nth-child(4)::after { content: '________________'; color: #999; }
 }
-
 @media (max-width: 900px) {
   .layout { flex-direction: column; }
   .sidebar { width: 100%; position: static; flex-direction: column; gap: 10px; }
@@ -624,95 +352,28 @@ details.students-list ul { margin: 8px 0 0 20px; font-size: 14px; }
   .report-tab { min-width: 100px; padding: 10px 8px; flex-direction: column; gap: 4px; font-size: 12px; }
   .report-tab .tab-emoji { font-size: 18px; }
 }
-
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--border-hover); }
-
-/* ===== MODERN UI REFRESH ===== */
-:root {
-  --radius: 18px;
-  --shadow: 0 8px 26px rgba(0, 0, 0, .14);
-  --shadow-lg: 0 22px 60px rgba(0, 0, 0, .22);
-}
-
+:root { --radius: 18px; --shadow: 0 8px 26px rgba(0, 0, 0, .14); --shadow-lg: 0 22px 60px rgba(0, 0, 0, .22); }
 html { scroll-behavior: smooth; }
-body {
-  background-image:
-    radial-gradient(ellipse at 4% 4%, rgba(var(--primary-rgb), .14), transparent 34%),
-    radial-gradient(ellipse at 94% 80%, rgba(139, 92, 246, .09), transparent 34%),
-    linear-gradient(135deg, rgba(255,255,255,.012) 25%, transparent 25%, transparent 50%, rgba(255,255,255,.012) 50%, rgba(255,255,255,.012) 75%, transparent 75%, transparent);
-  background-size: auto, auto, 34px 34px;
-  letter-spacing: .005em;
-}
-body.light-theme {
-  background-image:
-    radial-gradient(ellipse at 4% 4%, rgba(var(--primary-rgb), .10), transparent 34%),
-    radial-gradient(ellipse at 94% 80%, rgba(139, 92, 246, .07), transparent 34%),
-    linear-gradient(135deg, rgba(15,23,42,.018) 25%, transparent 25%, transparent 50%, rgba(15,23,42,.018) 50%, rgba(15,23,42,.018) 75%, transparent 75%, transparent);
-}
+body { background-image: radial-gradient(ellipse at 4% 4%, rgba(var(--primary-rgb), .14), transparent 34%), radial-gradient(ellipse at 94% 80%, rgba(139, 92, 246, .09), transparent 34%), linear-gradient(135deg, rgba(255,255,255,.012) 25%, transparent 25%, transparent 50%, rgba(255,255,255,.012) 50%, rgba(255,255,255,.012) 75%, transparent 75%, transparent); background-size: auto, auto, 34px 34px; letter-spacing: .005em; }
+body.light-theme { background-image: radial-gradient(ellipse at 4% 4%, rgba(var(--primary-rgb), .10), transparent 34%), radial-gradient(ellipse at 94% 80%, rgba(139, 92, 246, .07), transparent 34%), linear-gradient(135deg, rgba(15,23,42,.018) 25%, transparent 25%, transparent 50%, rgba(15,23,42,.018) 50%, rgba(15,23,42,.018) 75%, transparent 75%, transparent); }
 .container { max-width: 1480px; padding: 28px 24px 68px; }
-
-.header {
-  min-height: 210px;
-  padding: 28px 330px 28px 34px;
-  margin-bottom: 26px;
-  border-radius: 26px;
-  border: 1px solid rgba(165, 180, 252, .26);
-  background: linear-gradient(118deg, #111a36 0%, #171b3e 48%, #24204f 100%);
-  box-shadow: 0 24px 70px rgba(20, 22, 60, .28), inset 0 1px 0 rgba(255,255,255,.10);
-  isolation: isolate;
-  display: flex; flex-direction: column; justify-content: center;
-}
-.header::before {
-  background:
-    radial-gradient(circle at 14% 24%, rgba(var(--primary-rgb), .40), transparent 36%),
-    radial-gradient(circle at 75% 78%, rgba(168, 85, 247, .25), transparent 42%),
-    linear-gradient(120deg, transparent 20%, rgba(255,255,255,.025) 50%, transparent 80%);
-  background-size: 220% 220%;
-  opacity: .92;
-}
-.header::after {
-  content: '';
-  position: absolute;
-  width: 390px; height: 390px;
-  right: -155px; top: -235px;
-  border-radius: 50%;
-  border: 1px solid rgba(255,255,255,.10);
-  box-shadow: 0 0 0 28px rgba(255,255,255,.025), 0 0 0 58px rgba(255,255,255,.02), 0 0 0 94px rgba(255,255,255,.015);
-  pointer-events: none;
-  z-index: 0;
-}
+.header { min-height: 210px; padding: 28px 330px 28px 34px; margin-bottom: 26px; border-radius: 26px; border: 1px solid rgba(165, 180, 252, .26); background: linear-gradient(118deg, #111a36 0%, #171b3e 48%, #24204f 100%); box-shadow: 0 24px 70px rgba(20, 22, 60, .28), inset 0 1px 0 rgba(255,255,255,.10); isolation: isolate; display: flex; flex-direction: column; justify-content: center; }
+.header::before { background: radial-gradient(circle at 14% 24%, rgba(var(--primary-rgb), .40), transparent 36%), radial-gradient(circle at 75% 78%, rgba(168, 85, 247, .25), transparent 42%), linear-gradient(120deg, transparent 20%, rgba(255,255,255,.025) 50%, transparent 80%); background-size: 220% 220%; opacity: .92; }
+.header::after { content: ''; position: absolute; width: 390px; height: 390px; right: -155px; top: -235px; border-radius: 50%; border: 1px solid rgba(255,255,255,.10); box-shadow: 0 0 0 28px rgba(255,255,255,.025), 0 0 0 58px rgba(255,255,255,.02), 0 0 0 94px rgba(255,255,255,.015); pointer-events: none; z-index: 0; }
 .school-badge { gap: 22px; margin-bottom: 0; padding-bottom: 0; border-bottom: none; }
-.school-emblem {
-  width: 70px; height: 70px; font-size: 32px;
-  background: linear-gradient(145deg, var(--primary), #9b8cff 55%, #c4b5fd);
-  box-shadow: 0 12px 28px rgba(var(--primary-rgb), .28);
-}
+.school-emblem { width: 70px; height: 70px; font-size: 32px; background: linear-gradient(145deg, var(--primary), #9b8cff 55%, #c4b5fd); box-shadow: 0 12px 28px rgba(var(--primary-rgb), .28); }
 .school-name { font-size: clamp(20px, 1.7vw, 27px); line-height: 1.3; letter-spacing: -.45px; }
-
-.header-art {
-  position: absolute; z-index: 2; right: 26px; top: 8px;
-  width: 290px; height: 204px; pointer-events: none;
-}
+.header-art { position: absolute; z-index: 2; right: 26px; top: 8px; width: 290px; height: 204px; pointer-events: none; }
 .art-orbit { position: absolute; left: 66px; top: 15px; width: 154px; height: 154px; border: 1px solid rgba(209,213,255,.32); border-radius: 50%; }
 .art-orbit-one { transform: rotate(28deg) scaleX(1.28); animation: orbitFloat 10s ease-in-out infinite; }
 .art-orbit-two { transform: rotate(-38deg) scaleX(.82); border-style: dashed; border-color: rgba(196,181,253,.42); animation: orbitSpin 28s linear infinite; }
 .art-glow { position: absolute; left: 82px; top: 30px; width: 124px; height: 124px; border-radius: 50%; background: rgba(139,92,246,.28); filter: blur(24px); animation: artGlow 4s ease-in-out infinite; }
-.art-core {
-  position: absolute; left: 111px; top: 61px; width: 66px; height: 66px; border-radius: 22px;
-  display: grid; place-items: center; color: #fff; font-size: 32px; font-weight: 800;
-  background: linear-gradient(145deg, #8b83ff, #635bdb 58%, #5245bd);
-  box-shadow: 0 15px 36px rgba(70,64,180,.5), inset 0 1px 0 rgba(255,255,255,.45);
-  transform: rotate(-7deg); animation: coreFloat 5s ease-in-out infinite;
-}
-.art-chip {
-  position: absolute; display: flex; align-items: center; gap: 8px; white-space: nowrap;
-  padding: 9px 12px; border-radius: 13px; color: rgba(255,255,255,.93); font-size: 11px; font-weight: 650;
-  background: rgba(15,21,49,.66); border: 1px solid rgba(255,255,255,.17);
-  box-shadow: 0 12px 28px rgba(4,8,28,.22); backdrop-filter: blur(14px);
-}
+.art-core { position: absolute; left: 111px; top: 61px; width: 66px; height: 66px; border-radius: 22px; display: grid; place-items: center; color: #fff; font-size: 32px; font-weight: 800; background: linear-gradient(145deg, #8b83ff, #635bdb 58%, #5245bd); box-shadow: 0 15px 36px rgba(70,64,180,.5), inset 0 1px 0 rgba(255,255,255,.45); transform: rotate(-7deg); animation: coreFloat 5s ease-in-out infinite; }
+.art-chip { position: absolute; display: flex; align-items: center; gap: 8px; white-space: nowrap; padding: 9px 12px; border-radius: 13px; color: rgba(255,255,255,.93); font-size: 11px; font-weight: 650; background: rgba(15,21,49,.66); border: 1px solid rgba(255,255,255,.17); box-shadow: 0 12px 28px rgba(4,8,28,.22); backdrop-filter: blur(14px); }
 .art-chip-icon { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 7px; background: rgba(255,255,255,.12); font-size: 13px; }
 .art-chip-calendar { left: 0; top: 29px; animation: chipFloat 5.6s ease-in-out infinite; }
 .art-chip-report { right: 0; top: 103px; animation: chipFloat 5.6s ease-in-out -1.7s infinite; }
@@ -724,7 +385,6 @@ body.light-theme {
 @keyframes artGlow { 0%,100% { opacity:.65; transform:scale(.92); } 50% { opacity:1; transform:scale(1.12); } }
 @keyframes coreFloat { 0%,100% { transform: translateY(0) rotate(-7deg); } 50% { transform: translateY(-5px) rotate(-2deg); } }
 @keyframes chipFloat { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
-
 .layout { gap: 24px; }
 .sidebar { width: 270px; gap: 14px; top: 16px; }
 .side-brand { border-radius: 20px; box-shadow: 0 14px 40px rgba(0,0,0,.12); backdrop-filter: blur(16px); }
@@ -737,10 +397,7 @@ body.light-theme {
 .side-tools { padding: 17px; }
 .theme-btn { border-radius: 10px; padding: 9px 7px; }
 .color-dot { width: 30px; height: 30px; box-shadow: 0 3px 10px rgba(0,0,0,.12); }
-
-.file-bar, .date-nav, .report-tabs, .report-controls {
-  border-radius: 15px; box-shadow: 0 7px 22px rgba(0,0,0,.07); backdrop-filter: blur(12px);
-}
+.file-bar, .date-nav, .report-tabs, .report-controls { border-radius: 15px; box-shadow: 0 7px 22px rgba(0,0,0,.07); backdrop-filter: blur(12px); }
 .file-bar { padding: 14px 17px; margin-bottom: 18px; }
 .status-dot { width: 10px; height: 10px; }
 .date-controls { gap: 11px; margin-bottom: 14px; }
@@ -750,18 +407,12 @@ body.light-theme {
 .mini-day { min-width: 49px; padding: 8px 5px; border-radius: 13px; box-shadow: 0 3px 9px rgba(0,0,0,.045); }
 .mini-day:hover { transform: translateY(-2px); box-shadow: 0 8px 18px rgba(var(--primary-rgb), .12); }
 .mini-day.active { background: linear-gradient(145deg, rgba(var(--primary-rgb),.2), rgba(var(--primary-rgb),.06)); box-shadow: 0 0 0 1px var(--primary), 0 7px 18px rgba(var(--primary-rgb),.12); }
-
 .stats { gap: 14px; margin-bottom: 22px; }
-.stat {
-  position: relative; overflow: hidden; border-radius: 18px; padding: 19px 20px;
-  background: linear-gradient(145deg, var(--card), var(--card-hover));
-  transition: transform .24s ease, border-color .24s ease, box-shadow .24s ease;
-}
+.stat { position: relative; overflow: hidden; border-radius: 18px; padding: 19px 20px; background: linear-gradient(145deg, var(--card), var(--card-hover)); transition: transform .24s ease, border-color .24s ease, box-shadow .24s ease; }
 .stat::after { content:''; position:absolute; right:-22px; top:-28px; width:86px; height:86px; border-radius:50%; background:rgba(var(--primary-rgb),.055); pointer-events:none; }
 .stat:hover { transform: translateY(-4px); border-color: rgba(var(--primary-rgb),.35); box-shadow: 0 14px 34px rgba(0,0,0,.12); }
 .stat .label { letter-spacing: .8px; font-size: 11px; }
 .stat .value { font-size: 32px; letter-spacing: -1px; line-height: 1.2; margin-top: 8px; }
-
 .card { border-radius: 18px; box-shadow: 0 12px 34px rgba(0,0,0,.07); }
 .table-wrap { scrollbar-color: var(--border-hover) transparent; }
 thead th { position: sticky; top: 0; z-index: 2; padding: 15px 18px; backdrop-filter: blur(10px); }
@@ -779,7 +430,6 @@ tbody tr.r-other { border-left-color: var(--r-other-fg); }
 .reason-select { border-radius: 11px; min-height: 40px; }
 .reason-select:hover { border-color: rgba(var(--primary-rgb),.55); }
 .badge { padding: 5px 11px; letter-spacing: .1px; }
-
 button { border-radius: 11px; min-height: 38px; transition: transform .18s ease, box-shadow .22s ease, background-color .2s ease, border-color .2s ease; }
 button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, .mini-day:focus-visible { outline: 3px solid rgba(var(--primary-rgb), .52); outline-offset: 2px; }
 button:active { transform: translateY(1px) scale(.985); }
@@ -789,7 +439,6 @@ button:active { transform: translateY(1px) scale(.985); }
 .btn-secondary:hover { transform: translateY(-1px); border-color: rgba(var(--primary-rgb),.38); }
 .btn-danger:hover { transform: translateY(-1px); }
 .actions { gap: 9px; margin-bottom: 18px; }
-
 .report-tabs { padding: 7px; gap: 7px; }
 .report-tab { border-radius: 12px; padding: 15px 20px; }
 .report-tab.active { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); }
@@ -797,113 +446,28 @@ button:active { transform: translateY(1px) scale(.985); }
 .report-block, .settings-card { border-radius: 18px; padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,.055); }
 .report-table th { padding: 12px 14px; }
 .report-table td { padding: 12px 14px; }
-
 .modal-backdrop { background: rgba(4, 7, 18, .72); backdrop-filter: blur(12px); }
 .modal { border-radius: 22px; padding: 30px; box-shadow: 0 30px 90px rgba(0,0,0,.38); }
 .modal h2 { font-size: 22px; letter-spacing: -.4px; }
-.form-group select, .form-group input[type="text"], .form-group input[type="date"],
-.settings-card input[type="text"], .settings-card textarea, .schedule-item input[type="number"],
-.quarter-row input[type="date"], .report-controls input[type="date"], .report-controls input[type="month"] { border-radius: 11px; }
-.toast {
-  position: fixed; left: 50%; bottom: 26px; z-index: 150; transform: translate(-50%, 16px);
-  padding: 12px 18px; border-radius: 13px; border: 1px solid rgba(var(--primary-rgb),.35);
-  background: var(--card); color: var(--text); box-shadow: var(--shadow-lg); font-size: 14px; font-weight: 650;
-  opacity: 0; visibility: hidden; transition: opacity .22s ease, transform .22s ease, visibility .22s;
-  backdrop-filter: blur(16px); max-width: calc(100vw - 32px); text-align: center;
-}
+.form-group select, .form-group input[type="text"], .form-group input[type="date"], .settings-card input[type="text"], .settings-card textarea, .schedule-item input[type="number"], .quarter-row input[type="date"], .report-controls input[type="date"], .report-controls input[type="month"] { border-radius: 11px; }
+.toast { position: fixed; left: 50%; bottom: 26px; z-index: 150; transform: translate(-50%, 16px); padding: 12px 18px; border-radius: 13px; border: 1px solid rgba(var(--primary-rgb),.35); background: var(--card); color: var(--text); box-shadow: var(--shadow-lg); font-size: 14px; font-weight: 650; opacity: 0; visibility: hidden; transition: opacity .22s ease, transform .22s ease, visibility .22s; backdrop-filter: blur(16px); max-width: calc(100vw - 32px); text-align: center; }
 .toast.show { opacity: 1; visibility: visible; transform: translate(-50%, 0); }
-
 body.light-theme .header { box-shadow: 0 22px 60px rgba(50,59,120,.18), inset 0 1px 0 rgba(255,255,255,.18); }
-body.light-theme .side-brand, body.light-theme .side-menu, body.light-theme .side-tools,
-body.light-theme .file-bar, body.light-theme .date-nav, body.light-theme .report-tabs,
-body.light-theme .report-controls, body.light-theme .card, body.light-theme .stat,
-body.light-theme .report-block, body.light-theme .settings-card { box-shadow: 0 10px 30px rgba(20,35,70,.055); }
-
-@media (max-width: 1120px) {
-  .header { padding-right: 30px; }
-  .header-art { display: none; }
-}
-@media (max-width: 900px) {
-  .container { padding: 20px 16px 48px; }
-  .header { padding: 24px; min-height: 0; }
-  .header-art { display: none; }
-  .layout { gap: 18px; }
-  .sidebar { gap: 10px; }
-  .side-brand { border-radius: 16px; }
-  .side-menu { border-radius: 16px; }
-  .side-tools { border-radius: 16px; }
-  .side-btn { min-width: 84px; }
-}
-@media (max-width: 640px) {
-  .container { padding: 12px 10px 34px; }
-  .header { padding: 18px 17px 20px; margin-bottom: 16px; border-radius: 20px; }
-  .school-badge { gap: 14px; margin-bottom: 0; padding-bottom: 0; align-items: flex-start; border: none; }
-  .school-emblem { width: 52px; height: 52px; font-size: 26px; }
-  .school-name { font-size: 15px; letter-spacing: -.2px; }
-  .sidebar { gap: 8px; }
-  .side-brand { padding: 10px 12px; border-radius: 14px; }
-  .side-brand-icon { width: 34px; height: 34px; font-size: 16px; border-radius: 10px; }
-  .side-brand-title { font-size: 12px; }
-  .side-brand-class { font-size: 10px; }
-  .side-menu { padding: 6px; gap: 3px; }
-  .side-btn { min-width: 0; padding: 8px 4px; border-radius: 11px; }
-  .side-icon-wrap { width: 30px; height: 30px; border-radius: 10px; }
-  .side-label { font-size: 10px; }
-  .side-tools { padding: 10px; }
-  .file-bar { padding: 11px 12px; }
-  .file-bar-left { font-size: 12px; }
-  .date-controls { align-items: stretch; }
-  .date-nav { width: 100%; flex-wrap: wrap; justify-content: space-between; }
-  .date-nav input[type="date"] { flex: 1; min-width: 120px; }
-  .date-controls > div:last-child { margin-left: 0 !important; width: 100%; }
-  .date-controls > div:last-child button { flex: 1 1 auto; justify-content: center; }
-  .stats { grid-template-columns: repeat(3, minmax(0,1fr)); gap: 7px; }
-  .stat { padding: 13px 10px; border-radius: 14px; }
-  .stat .label { font-size: 9px; letter-spacing: .3px; }
-  .stat .value { font-size: 25px; }
-  .actions button { flex: 1 1 calc(50% - 8px); justify-content: center; padding: 10px 9px; font-size: 12px; }
-  .report-block, .settings-card { padding: 16px; border-radius: 15px; }
-  .report-controls { padding: 13px; }
-  .report-tabs { gap: 4px; }
-  .report-tab { padding: 10px 6px; }
-  .modal { padding: 22px 18px; border-radius: 18px; }
-  .toast { bottom: 14px; }
-}
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .01ms !important; }
-}
-/* ===== ЖЕСТКАЯ МОБИЛЬНАЯ ОПТИМИЗАЦИЯ (до 768px) ===== */
+body.light-theme .side-brand, body.light-theme .side-menu, body.light-theme .side-tools, body.light-theme .file-bar, body.light-theme .date-nav, body.light-theme .report-tabs, body.light-theme .report-controls, body.light-theme .card, body.light-theme .stat, body.light-theme .report-block, body.light-theme .settings-card { box-shadow: 0 10px 30px rgba(20,35,70,.055); }
+@media (max-width: 1120px) { .header { padding-right: 30px; } .header-art { display: none; } }
+@media (max-width: 900px) { .container { padding: 20px 16px 48px; } .header { padding: 24px; min-height: 0; } .header-art { display: none; } .layout { gap: 18px; } .sidebar { gap: 10px; } .side-brand { border-radius: 16px; } .side-menu { border-radius: 16px; } .side-tools { border-radius: 16px; } .side-btn { min-width: 84px; } }
+@media (max-width: 640px) { .container { padding: 12px 10px 34px; } .header { padding: 18px 17px 20px; margin-bottom: 16px; border-radius: 20px; } .school-badge { gap: 14px; margin-bottom: 0; padding-bottom: 0; align-items: flex-start; border: none; } .school-emblem { width: 52px; height: 52px; font-size: 26px; } .school-name { font-size: 15px; letter-spacing: -.2px; } .sidebar { gap: 8px; } .side-brand { padding: 10px 12px; border-radius: 14px; } .side-brand-icon { width: 34px; height: 34px; font-size: 16px; border-radius: 10px; } .side-brand-title { font-size: 12px; } .side-brand-class { font-size: 10px; } .side-menu { padding: 6px; gap: 3px; } .side-btn { min-width: 0; padding: 8px 4px; border-radius: 11px; } .side-icon-wrap { width: 30px; height: 30px; border-radius: 10px; } .side-label { font-size: 10px; } .side-tools { padding: 10px; } .file-bar { padding: 11px 12px; } .file-bar-left { font-size: 12px; } .date-controls { align-items: stretch; } .date-nav { width: 100%; flex-wrap: wrap; justify-content: space-between; } .date-nav input[type="date"] { flex: 1; min-width: 120px; } .date-controls > div:last-child { margin-left: 0 !important; width: 100%; } .date-controls > div:last-child button { flex: 1 1 auto; justify-content: center; } .stats { grid-template-columns: repeat(3, minmax(0,1fr)); gap: 7px; } .stat { padding: 13px 10px; border-radius: 14px; } .stat .label { font-size: 9px; letter-spacing: .3px; } .stat .value { font-size: 25px; } .actions button { flex: 1 1 calc(50% - 8px); justify-content: center; padding: 10px 9px; font-size: 12px; } .report-block, .settings-card { padding: 16px; border-radius: 15px; } .report-controls { padding: 13px; } .report-tabs { gap: 4px; } .report-tab { padding: 10px 6px; } .modal { padding: 22px 18px; border-radius: 18px; } .toast { bottom: 14px; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .01ms !important; } }
 @media (max-width: 768px) {
-  /* Запрещаем горизонтальный скролл всей страницы */
-  html, body {
-    overflow-x: hidden !important;
-    width: 100% !important;
-    max-width: 100vw !important;
-  }
-  .container { 
-    width: 100% !important;
-    max-width: 100vw !important;
-    padding: 8px 8px 30px !important; 
-    overflow-x: hidden !important;
-  }
-  .layout { 
-    flex-direction: column !important; 
-    gap: 10px !important; 
-    width: 100% !important;
-  }
-  .main { 
-    width: 100% !important; 
-    max-width: 100% !important;
-  }
-
-  /* --- Шапка --- */
+  html, body { overflow-x: hidden !important; width: 100% !important; max-width: 100vw !important; }
+  .container { width: 100% !important; max-width: 100vw !important; padding: 8px 8px 30px !important; overflow-x: hidden !important; }
+  .layout { flex-direction: column !important; gap: 10px !important; width: 100% !important; }
+  .main { width: 100% !important; max-width: 100% !important; }
   .header { min-height: unset !important; padding: 10px 12px !important; border-radius: 12px !important; margin-bottom: 8px !important; width: 100% !important; box-sizing: border-box !important; }
   .school-badge { gap: 10px !important; padding-bottom: 0 !important; margin-bottom: 0 !important; border-bottom: none !important; align-items: center !important; }
   .school-emblem { width: 36px !important; height: 36px !important; font-size: 18px !important; flex-shrink: 0 !important; }
   .school-name { font-size: 12px !important; line-height: 1.2 !important; }
   .header-art { display: none !important; }
-
-  /* --- Сайдбар и навигация --- */
   .sidebar { width: 100% !important; gap: 6px !important; flex-direction: column !important; }
   .side-brand { padding: 8px 12px !important; border-radius: 10px !important; }
   .side-brand-icon { width: 30px !important; height: 30px !important; font-size: 14px !important; border-radius: 8px !important; }
@@ -914,94 +478,57 @@ body.light-theme .report-block, body.light-theme .settings-card { box-shadow: 0 
   .side-icon-wrap { width: 26px !important; height: 26px !important; font-size: 13px !important; border-radius: 6px !important; }
   .side-label { font-size: 10px !important; text-align: center !important; }
   .side-sub { display: none !important; }
-  
-  /* Скрываем настройки темы на телефоне, чтобы не занимали место */
-  .side-tools { display: none !important; } 
-
-  /* --- Блок пользователя --- */
+  .side-tools { display: none !important; }
   .file-bar { padding: 6px 10px !important; margin-bottom: 6px !important; border-radius: 10px !important; flex-wrap: nowrap !important; width: 100% !important; box-sizing: border-box !important; display: flex !important; justify-content: space-between !important; align-items: center !important; }
   .file-bar-left { font-size: 10px !important; gap: 6px !important; overflow: hidden !important; flex: 1 !important; }
   #userEmail { font-size: 10px !important; white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important; max-width: 50vw !important; }
   .file-bar-actions { flex-shrink: 0 !important; }
   .file-bar-actions button { padding: 4px 10px !important; font-size: 10px !important; min-height: 26px !important; border-radius: 6px !important; }
-
-  /* --- Выбор даты (решает проблему с вылезанием) --- */
-  .date-controls { 
-    display: flex !important; 
-    flex-direction: column !important; 
-    width: 100% !important; 
-    gap: 6px !important; 
-    margin-bottom: 8px !important; 
-    align-items: stretch !important; 
-  }
-  .date-nav { 
-    width: 100% !important; 
-    box-sizing: border-box !important; 
-    padding: 4px !important; 
-    border-radius: 10px !important; 
-    display: flex !important; 
-    flex-wrap: wrap !important; 
-    gap: 4px !important;
-    justify-content: space-between !important;
-  }
+  .date-controls { display: flex !important; flex-direction: column !important; width: 100% !important; gap: 6px !important; margin-bottom: 8px !important; align-items: stretch !important; }
+  .date-nav { width: 100% !important; box-sizing: border-box !important; padding: 4px !important; border-radius: 10px !important; display: flex !important; flex-wrap: wrap !important; gap: 4px !important; justify-content: space-between !important; }
   .date-nav input[type="date"] { flex: 1 1 100% !important; text-align: center !important; font-size: 13px !important; font-weight: 700 !important; padding: 6px 0 !important; border-bottom: 1px solid var(--border) !important; border-radius: 0 !important; }
   .date-nav .btn-nav { flex: 1 !important; padding: 6px 4px !important; font-size: 11px !important; border-radius: 6px !important; display: flex !important; justify-content: center !important; }
   .date-controls > div:last-child { margin-left: 0 !important; width: 100% !important; display: flex !important; gap: 4px !important; }
   .date-controls > div:last-child button { flex: 1 !important; padding: 6px 4px !important; font-size: 11px !important; min-height: 30px !important; justify-content: center !important; border-radius: 8px !important; }
-
-  /* --- Мини-календарь --- */
   .mini-calendar { margin-bottom: 8px !important; gap: 4px !important; padding-bottom: 4px !important; width: 100% !important; box-sizing: border-box !important; }
   .mini-day { min-width: 34px !important; padding: 4px 2px !important; border-radius: 8px !important; gap: 1px !important; }
   .mini-dow { font-size: 8px !important; }
   .mini-num { font-size: 12px !important; }
   .mini-dot { width: 4px !important; height: 4px !important; }
-
-  /* --- Статистика --- */
   .stats { display: grid !important; grid-template-columns: 1fr 1fr 1fr !important; gap: 4px !important; margin-bottom: 8px !important; width: 100% !important; box-sizing: border-box !important; }
   .stat { padding: 6px 4px !important; border-radius: 8px !important; }
   .stat .label { font-size: 8px !important; letter-spacing: 0 !important; white-space: nowrap !important; }
   .stat .value { font-size: 16px !important; margin-top: 2px !important; }
-
-  /* --- Кнопки действий (2 колонки) --- */
   .actions { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 4px !important; margin-bottom: 8px !important; width: 100% !important; box-sizing: border-box !important; }
   .actions button { width: 100% !important; padding: 6px 2px !important; font-size: 10px !important; min-height: 28px !important; justify-content: center !important; border-radius: 8px !important; white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important; }
-
-  /* --- Карточки учеников (вместо таблицы) --- */
   #tab-attendance .card { border-radius: 12px !important; border: none !important; background: transparent !important; box-shadow: none !important; width: 100% !important; }
   #tab-attendance .table-wrap { overflow: visible !important; width: 100% !important; }
   #tab-attendance table, #tab-attendance tbody { display: block !important; width: 100% !important; }
   #tab-attendance thead { display: none !important; }
-  
-  #tab-attendance tbody tr {
-    display: flex !important;
-    flex-wrap: wrap !important;
-    align-items: center !important;
-    gap: 4px 8px !important;
-    padding: 8px 10px !important;
-    margin-bottom: 6px !important;
-    border: 1px solid var(--border) !important;
-    border-left-width: 3px !important;
-    border-radius: 10px !important;
-    background: var(--card) !important;
-    width: 100% !important;
-    box-sizing: border-box !important;
-  }
+  #tab-attendance tbody tr { display: flex !important; flex-wrap: wrap !important; align-items: center !important; gap: 4px 8px !important; padding: 8px 10px !important; margin-bottom: 6px !important; border: 1px solid var(--border) !important; border-left-width: 3px !important; border-radius: 10px !important; background: var(--card) !important; width: 100% !important; box-sizing: border-box !important; }
   #tab-attendance tbody td { padding: 0 !important; border: none !important; display: block !important; }
-  
   #tab-attendance tbody td:nth-child(1) { width: 20px !important; flex-shrink: 0 !important; font-size: 11px !important; color: var(--muted) !important; text-align: right !important; }
   #tab-attendance tbody td:nth-child(2) { flex: 1 !important; font-size: 13px !important; font-weight: 600 !important; min-width: 0 !important; }
   #tab-attendance tbody td:nth-child(3) { width: 100% !important; margin-top: 2px !important; }
   #tab-attendance tbody td:nth-child(4) { width: 100% !important; margin-top: 4px !important; }
-  
   #tab-attendance .student-name { display: flex !important; align-items: center !important; gap: 4px !important; flex-wrap: wrap !important; }
   #tab-attendance .name-text { display: inline !important; }
   #tab-attendance .btn-quick-interval { opacity: 1 !important; border-color: var(--border) !important; padding: 0 4px !important; font-size: 11px !important; min-height: 20px !important; }
-  
   #tab-attendance .badge { font-size: 10px !important; padding: 2px 6px !important; }
   #tab-attendance .reason-select { min-width: 0 !important; width: 100% !important; font-size: 12px !important; padding: 6px 26px 6px 8px !important; min-height: 30px !important; border-radius: 6px !important; background-position: right 8px center !important; }
   #tab-attendance .compact-info { margin-top: 4px !important; gap: 4px !important; font-size: 10px !important; }
   #tab-attendance .compact-hint { font-size: 10px !important; padding: 2px 6px !important; border-radius: 4px !important; }
   #tab-attendance .btn-expand-row { padding: 2px 6px !important; font-size: 10px !important; border-radius: 4px !important; }
+  .search-bar { flex-direction: column !important; gap: 4px !important; }
+  .search-input { min-width: 0 !important; width: 100% !important; padding: 8px !important; font-size: 12px !important; }
+  .bulk-panel { flex-direction: column !important; padding: 8px !important; gap: 6px !important; }
+  .bulk-panel > div { width: 100% !important; display: flex !important; gap: 4px !important; flex-wrap: wrap !important; }
+  .bulk-panel button, .bulk-panel select { flex: 1 !important; font-size: 11px !important; padding: 6px !important; }
+  .alert-banner { padding: 8px !important; font-size: 11px !important; margin-bottom: 8px !important; }
+  .stats-bar-student { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+  .stats-bar-item { background: var(--input-bg); padding: 10px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; font-size: 13px; }
+  .stats-bar-fill { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; margin-top: 4px; }
+  .stats-bar-fill-inner { height: 100%; background: var(--primary); }
 }
 </style>
 </head>
@@ -1078,6 +605,7 @@ body.light-theme .report-block, body.light-theme .settings-card { box-shadow: 0 
         <div class="theme-toggles">
           <button class="theme-btn active" onclick="setTheme('dark')">🌙 Тёмная</button>
           <button class="theme-btn" onclick="setTheme('light')">☀️ Светлая</button>
+          <button class="theme-btn" onclick="setTheme('auto')">💻 Авто</button>
         </div>
         <div class="tools-title">Акцент</div>
         <div class="color-palette">
@@ -1093,12 +621,18 @@ body.light-theme .report-block, body.light-theme .settings-card { box-shadow: 0 
       <section id="tab-attendance" class="tab-panel active">
         <div class="file-bar">
           <div class="file-bar-left">
-            <span class="status-dot connected"></span>
+            <span class="status-dot connected" id="statusDot"></span>
             <span id="userEmail">—</span>
+            <span id="saveStatus" style="font-size:12px; color:var(--muted); margin-left:6px;"></span>
           </div>
           <div class="file-bar-actions">
+            <button class="btn-secondary" onclick="openPasswordModal()">Сменить пароль</button>
             <button class="btn-secondary" onclick="doLogout()">Выйти</button>
           </div>
+        </div>
+
+        <div class="alert-banner" id="warningBanner">
+          ⚠️ <span id="warningText"></span>
         </div>
 
         <div class="date-controls">
@@ -1110,19 +644,41 @@ body.light-theme .report-block, body.light-theme .settings-card { box-shadow: 0 
           </div>
           <div style="display:flex; gap:8px; margin-left:auto; flex-wrap:wrap;">
             <button class="btn-secondary" onclick="copyYesterday()">📋 Скопировать вчера</button>
+            <button class="btn-secondary" onclick="copyToWeek()">📅 На 5 дней</button>
             <button class="btn-danger" onclick="markAllPresent()">✅ Все присутствуют</button>
           </div>
         </div>
 
         <div class="mini-calendar" id="miniCalendar"></div>
 
-        <div class="stats" id="stats"></div>
+        <div class="stats" id="stats">
+          <div class="stat"><div class="label">Всего</div><div class="value skeleton" style="width:40px; height:30px; background:var(--border); border-radius:4px;"></div></div>
+          <div class="stat"><div class="label">Присутствуют</div><div class="value skeleton" style="width:40px; height:30px; background:var(--border); border-radius:4px;"></div></div>
+          <div class="stat"><div class="label">Отсутствуют</div><div class="value skeleton" style="width:40px; height:30px; background:var(--border); border-radius:4px;"></div></div>
+        </div>
+
+        <div class="search-bar">
+          <input type="text" class="search-input" id="searchInput" placeholder="🔍 Поиск по ФИО..." oninput="onSearch()">
+        </div>
+
+        <div class="bulk-panel" id="bulkPanel">
+          <div class="bulk-info" id="bulkInfo">Выбрано: 0</div>
+          <div style="display:flex; gap:8px; margin-left:auto; flex-wrap:wrap;">
+            <select id="bulkReason" class="quarter-select">
+              <option value="">-- Причина --</option>
+            </select>
+            <button class="btn-primary" onclick="applyBulkReason()">Применить</button>
+            <button class="btn-secondary" onclick="clearSelection()">Сбросить</button>
+          </div>
+        </div>
 
         <div class="actions">
           <button class="btn-primary" onclick="openIntervalModal()">📅 Добавить интервал</button>
           <button class="btn-secondary" onclick="openEditList()">✏️ Редактировать список</button>
           <button class="btn-secondary" onclick="collapseAllRows()">📕 Свернуть все детали</button>
           <button class="btn-secondary" onclick="exportCSV()">📊 Экспорт CSV (день)</button>
+          <button class="btn-secondary" onclick="exportFullClassExcel()">📂 Экспорт класса в Excel</button>
+          <button class="btn-secondary" onclick="printClassList()">🖨️ Печать списка</button>
         </div>
 
         <div class="card">
@@ -1130,7 +686,8 @@ body.light-theme .report-block, body.light-theme .settings-card { box-shadow: 0 
             <table>
               <thead>
                 <tr>
-                  <th style="width: 50px;">№</th>
+                  <th style="width: 40px;"><input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)"></th>
+                  <th style="width: 40px;">№</th>
                   <th>Ученик</th>
                   <th style="width: 130px;">Статус</th>
                   <th>Причина / Детали</th>
@@ -1144,29 +701,10 @@ body.light-theme .report-block, body.light-theme .settings-card { box-shadow: 0 
 
       <section id="tab-reports" class="tab-panel">
         <div class="report-tabs">
-          <button class="report-tab active" data-report="1" onclick="switchReportPane('1')">
-            <span class="tab-emoji">📑</span>
-            <span class="tab-label">
-              <span class="tab-title">Отчёт №1</span>
-              <span class="tab-sub">Четверть</span>
-            </span>
-          </button>
-          <button class="report-tab" data-report="2" onclick="switchReportPane('2')">
-            <span class="tab-emoji">📊</span>
-            <span class="tab-label">
-              <span class="tab-title">Отчёт №2</span>
-              <span class="tab-sub">Месяц</span>
-            </span>
-          </button>
-          <button class="report-tab" data-report="year" onclick="switchReportPane('year')">
-            <span class="tab-emoji">📅</span>
-            <span class="tab-label">
-              <span class="tab-title">Сводка</span>
-              <span class="tab-sub">За год</span>
-            </span>
-          </button>
+          <button class="report-tab active" data-report="1" onclick="switchReportPane('1')"><span class="tab-emoji">📑</span><span class="tab-label"><span class="tab-title">Отчёт №1</span><span class="tab-sub">Четверть</span></span></button>
+          <button class="report-tab" data-report="2" onclick="switchReportPane('2')"><span class="tab-emoji">📊</span><span class="tab-label"><span class="tab-title">Отчёт №2</span><span class="tab-sub">Месяц</span></span></button>
+          <button class="report-tab" data-report="year" onclick="switchReportPane('year')"><span class="tab-emoji">📅</span><span class="tab-label"><span class="tab-title">Сводка</span><span class="tab-sub">За год</span></span></button>
         </div>
-
         <div id="reportPane-1" class="report-pane active">
           <div class="report-controls">
             <label>📑 Период:</label>
@@ -1177,11 +715,8 @@ body.light-theme .report-block, body.light-theme .settings-card { box-shadow: 0 
             <span id="report1EduBadge" class="edu-days-badge">📚 —</span>
             <button class="btn-primary" onclick="runReport1()">Сформировать</button>
           </div>
-          <div id="report1Output">
-            <div class="report-block"><div class="empty-state"><span class="emoji">📑</span>Нажмите «Сформировать», чтобы построить отчёт</div></div>
-          </div>
+          <div id="report1Output"><div class="report-block"><div class="empty-state"><span class="emoji">📑</span>Нажмите «Сформировать», чтобы построить отчёт</div></div></div>
         </div>
-
         <div id="reportPane-2" class="report-pane">
           <div class="report-controls">
             <label>📊 Месяц:</label>
@@ -1189,77 +724,24 @@ body.light-theme .report-block, body.light-theme .settings-card { box-shadow: 0 
             <span id="report2EduBadge" class="edu-days-badge">📚 —</span>
             <button class="btn-primary" onclick="runReport2()">Сформировать</button>
           </div>
-          <div id="report2Output">
-            <div class="report-block"><div class="empty-state"><span class="emoji">📊</span>Нажмите «Сформировать», чтобы построить отчёт</div></div>
-          </div>
+          <div id="report2Output"><div class="report-block"><div class="empty-state"><span class="emoji">📊</span>Нажмите «Сформировать», чтобы построить отчёт</div></div></div>
         </div>
-
         <div id="reportPane-year" class="report-pane">
           <div class="report-controls">
             <label>📅 По всем четвертям</label>
             <span style="color:var(--muted); font-size:13px;">Сводка по всем четвертям текущего учебного года</span>
             <button class="btn-primary" onclick="runYearSummary()">Сформировать</button>
           </div>
-          <div id="yearOutput">
-            <div class="report-block"><div class="empty-state"><span class="emoji">📅</span>Нажмите «Сформировать», чтобы построить сводку</div></div>
-          </div>
+          <div id="yearOutput"><div class="report-block"><div class="empty-state"><span class="emoji">📅</span>Нажмите «Сформировать», чтобы построить сводку</div></div></div>
         </div>
       </section>
 
       <section id="tab-settings" class="tab-panel">
-        <div class="settings-card">
-          <h2>🏫 Класс</h2>
-          <p class="desc">Название отображается в шапке сайта и в заголовках отчётов. Например: <code>7 "А"</code>.</p>
-          <input type="text" id="classNameInput" placeholder='Например: 7 "А"' maxlength="50">
-          <div style="margin-top: 12px;"><button class="btn-primary" onclick="saveClassName()">Сохранить</button></div>
-        </div>
-
-        <div class="settings-card">
-          <h2>📅 Учебные четверти</h2>
-          <p class="desc">Даты начала и окончания каждой четверти.</p>
-          <div id="quartersForm"></div>
-          <div style="margin-top: 12px;"><button class="btn-primary" onclick="saveQuarters()">Сохранить четверти</button></div>
-        </div>
-
-        <div class="settings-card">
-          <h2>📚 Расписание (пн–пт)</h2>
-          <p class="desc">Сколько уроков в каждый учебный день. Не влияет на особые дни — у них своё число уроков.</p>
-          <div class="schedule-grid">
-            <div class="schedule-item"><label>Пн</label><input type="number" id="sched1" min="0" max="15"></div>
-            <div class="schedule-item"><label>Вт</label><input type="number" id="sched2" min="0" max="15"></div>
-            <div class="schedule-item"><label>Ср</label><input type="number" id="sched3" min="0" max="15"></div>
-            <div class="schedule-item"><label>Чт</label><input type="number" id="sched4" min="0" max="15"></div>
-            <div class="schedule-item"><label>Пт</label><input type="number" id="sched5" min="0" max="15"></div>
-          </div>
-          <button class="btn-primary" onclick="saveSchedule()">Сохранить расписание</button>
-        </div>
-
-        <div class="settings-card">
-          <h2>🔔 Особые учебные дни (переносы)</h2>
-          <p class="desc">Суббота или другой выходной, который объявлен рабочим учебным днём (перенос). Добавьте дату и укажите количество уроков в этот день.</p>
-          <div class="special-add-row">
-            <div>
-              <label>Дата</label>
-              <input type="date" id="spDate">
-            </div>
-            <div>
-              <label>Уроков</label>
-              <input type="number" id="spLessons" min="1" max="15" value="7">
-            </div>
-            <button class="btn-primary" onclick="addSpecialDay()">Добавить</button>
-          </div>
-          <div class="special-list" id="specialDaysList"></div>
-        </div>
-
-        <div class="settings-card">
-          <h2>🚫 Исключённые дни</h2>
-          <p class="desc">Праздники, каникулы, перенесённые выходные. Формат <code>YYYY-MM-DD</code>, по одной на строку. Выходные (сб, вс) исключаются автоматически.</p>
-          <textarea id="excludedDatesEditor" spellcheck="false" placeholder="2026-11-04&#10;2026-12-31"></textarea>
-          <div style="margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap;">
-            <button class="btn-primary" onclick="saveExcludedDates()">Сохранить</button>
-            <button class="btn-secondary" onclick="fillBelarusHolidays()">🇧🇾 Праздники Беларуси</button>
-          </div>
-        </div>
+        <div class="settings-card"><h2>🏫 Класс</h2><p class="desc">Название отображается в шапке сайта и в заголовках отчётов.</p><input type="text" id="classNameInput" placeholder='Например: 7 "А"' maxlength="50"><div style="margin-top: 12px;"><button class="btn-primary" onclick="saveClassName()">Сохранить</button></div></div>
+        <div class="settings-card"><h2>📅 Учебные четверти</h2><p class="desc">Даты начала и окончания каждой четверти.</p><div id="quartersForm"></div><div style="margin-top: 12px;"><button class="btn-primary" onclick="saveQuarters()">Сохранить четверти</button></div></div>
+        <div class="settings-card"><h2>📚 Расписание (пн–пт)</h2><p class="desc">Сколько уроков в каждый учебный день.</p><div class="schedule-grid"><div class="schedule-item"><label>Пн</label><input type="number" id="sched1" min="0" max="15"></div><div class="schedule-item"><label>Вт</label><input type="number" id="sched2" min="0" max="15"></div><div class="schedule-item"><label>Ср</label><input type="number" id="sched3" min="0" max="15"></div><div class="schedule-item"><label>Чт</label><input type="number" id="sched4" min="0" max="15"></div><div class="schedule-item"><label>Пт</label><input type="number" id="sched5" min="0" max="15"></div></div><button class="btn-primary" onclick="saveSchedule()">Сохранить расписание</button></div>
+        <div class="settings-card"><h2>🔔 Особые учебные дни</h2><p class="desc">Суббота или выходной, объявленный рабочим днём.</p><div class="special-add-row"><div><label>Дата</label><input type="date" id="spDate"></div><div><label>Уроков</label><input type="number" id="spLessons" min="1" max="15" value="7"></div><button class="btn-primary" onclick="addSpecialDay()">Добавить</button></div><div class="special-list" id="specialDaysList"></div></div>
+        <div class="settings-card"><h2>🚫 Исключённые дни</h2><p class="desc">Праздники, каникулы, перенесённые выходные. Формат YYYY-MM-DD.</p><textarea id="excludedDatesEditor" spellcheck="false" placeholder="2026-11-04&#10;2026-12-31"></textarea><div style="margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap;"><button class="btn-primary" onclick="saveExcludedDates()">Сохранить</button><button class="btn-secondary" onclick="fillBelarusHolidays()">🇧🇾 Праздники Беларуси</button></div></div>
       </section>
     </div>
   </div>
@@ -1269,37 +751,12 @@ body.light-theme .report-block, body.light-theme .settings-card { box-shadow: 0 
   <div class="modal">
     <h2>📅 Добавить интервал отсутствия</h2>
     <p class="hint">Отметит ученика отсутствующим на все учебные дни в выбранном диапазоне.</p>
-    <div class="form-group">
-      <label>Ученик</label>
-      <select id="intervalStudent"></select>
-    </div>
-    <div class="form-group">
-      <label>Причина</label>
-      <select id="intervalReason"></select>
-    </div>
-    <div class="form-row">
-      <div class="form-group">
-        <label>С (включительно)</label>
-        <input type="date" id="intervalFrom">
-      </div>
-      <div class="form-group">
-        <label>По (включительно)</label>
-        <input type="date" id="intervalTo">
-      </div>
-    </div>
-    <div class="form-group">
-      <label>Комментарий (необязательно)</label>
-      <input type="text" id="intervalComment" placeholder="Например: Справка №145 от 14.10.2026">
-    </div>
-    <label class="checkbox-row">
-      <input type="checkbox" id="intervalSkipNonEdu" checked>
-      Пропускать выходные и праздничные дни
-    </label>
-    <div class="warning-box" id="intervalWarning">⚠️ Существующие отметки в выбранных днях будут заменены.</div>
-    <div class="modal-actions">
-      <button class="btn-secondary" onclick="closeIntervalModal()">Отмена</button>
-      <button class="btn-primary" onclick="saveInterval()">📅 Добавить</button>
-    </div>
+    <div class="form-group"><label>Ученик</label><select id="intervalStudent"></select></div>
+    <div class="form-group"><label>Причина</label><select id="intervalReason"></select></div>
+    <div class="form-row"><div class="form-group"><label>С (включительно)</label><input type="date" id="intervalFrom"></div><div class="form-group"><label>По (включительно)</label><input type="date" id="intervalTo"></div></div>
+    <div class="form-group"><label>Комментарий (необязательно)</label><input type="text" id="intervalComment" placeholder="Например: Справка №145 от 14.10.2026"></div>
+    <label class="checkbox-row"><input type="checkbox" id="intervalSkipNonEdu" checked> Пропускать выходные и праздничные дни</label>
+    <div class="modal-actions"><button class="btn-secondary" onclick="closeIntervalModal()">Отмена</button><button class="btn-primary" onclick="saveInterval()">📅 Добавить</button></div>
   </div>
 </div>
 
@@ -1308,17 +765,32 @@ body.light-theme .report-block, body.light-theme .settings-card { box-shadow: 0 
     <h2>Редактировать список класса</h2>
     <p class="hint">Введите ФИО учеников — по одному на строку.</p>
     <textarea id="classListEditor" spellcheck="false"></textarea>
-    <div class="modal-actions">
-      <button class="btn-secondary" onclick="document.getElementById('modalBackdrop').classList.remove('open')">Отмена</button>
-      <button class="btn-primary" onclick="saveClassList()">Сохранить</button>
+    <div class="modal-actions"><button class="btn-secondary" onclick="document.getElementById('modalBackdrop').classList.remove('open')">Отмена</button><button class="btn-primary" onclick="saveClassList()">Сохранить</button></div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="passwordBackdrop">
+  <div class="modal">
+    <h2>Сменить пароль</h2>
+    <p class="hint">Введите новый пароль (минимум 6 символов).</p>
+    <div class="form-group"><label>Новый пароль</label><input type="password" id="newPassInput" placeholder="••••••••"></div>
+    <div class="modal-actions"><button class="btn-secondary" onclick="document.getElementById('passwordBackdrop').classList.remove('open')">Отмена</button><button class="btn-primary" onclick="saveNewPassword()">Сохранить</button></div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="studentStatsBackdrop">
+  <div class="modal">
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
+      <h2 id="statsTitle">Статистика ученика</h2>
+      <button class="btn-secondary" style="padding:4px 8px; min-height:0;" onclick="document.getElementById('studentStatsBackdrop').classList.remove('open')">✕</button>
     </div>
+    <div id="studentStatsContent"></div>
   </div>
 </div>
 
 <div class="toast" id="toast"></div>
 
 <script>
-// ==================== SUPABASE ====================
 const SUPABASE_URL = 'https://tzslxobwueqwecxpowqm.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_tcGF06S2ICA4NNw7T0S0xw_aRee02qV';
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -1327,25 +799,26 @@ let currentUser = null;
 let currentClassId = null;
 let studentIds = [];
 let saveTimer = null;
+let undoStack = [];
+let searchQuery = '';
+let selectedStudents = new Set();
+let studentNotes = {}; 
 
-// ==================== КОНСТАНТЫ ====================
 const REASONS = {
-  '':            { label: 'Присутствует',                       emoji: '✅', cls: '' },
-  'medical':     { label: 'Медицинская справка',                emoji: '🏥', cls: 'medical' },
-  'ozdorovlenie':{ label: 'Оздоровление в санаториях',          emoji: '🌿', cls: 'ozdorovlenie' },
-  'health':      { label: 'Заявление: состояние здоровья',      emoji: '🩺', cls: 'health' },
-  'family':      { label: 'Заявление: семейные обстоятельства', emoji: '📄', cls: 'family' },
-  'sport':       { label: 'Соревнования',                       emoji: '🏆', cls: 'sport' },
-  'cultural':    { label: 'Культ-массовые мероприятия',         emoji: '🎭', cls: 'cultural' },
-  'norespect':   { label: 'Без уважительной причины',           emoji: '⚠️', cls: 'norespect' },
-  'other':       { label: 'Иная причина',                       emoji: '❓', cls: 'other' }
+  '': { label: 'Присутствует', emoji: '✅', cls: '' },
+  'medical': { label: 'Медицинская справка', emoji: '🏥', cls: 'medical' },
+  'ozdorovlenie': { label: 'Оздоровление в санаториях', emoji: '🌿', cls: 'ozdorovlenie' },
+  'health': { label: 'Заявление: здоровье', emoji: '🩺', cls: 'health' },
+  'family': { label: 'Заявление: семейные', emoji: '📄', cls: 'family' },
+  'sport': { label: 'Соревнования', emoji: '🏆', cls: 'sport' },
+  'cultural': { label: 'Культ-массовые', emoji: '🎭', cls: 'cultural' },
+  'norespect': { label: 'Без уважительной', emoji: '⚠️', cls: 'norespect' },
+  'other': { label: 'Иная причина', emoji: '❓', cls: 'other' }
 };
 const REASON_KEYS = ['medical','ozdorovlenie','health','family','sport','cultural','norespect','other'];
-
 const LS_THEME = 'attendance_theme_v1';
 const LS_ACCENT = 'attendance_accent_v1';
 
-// ==================== СОСТОЯНИЕ ====================
 let students = [];
 let absences = {};
 let schedule = { 0:0, 1:7, 2:7, 3:7, 4:7, 5:7, 6:0 };
@@ -1361,8 +834,9 @@ const dateInput = document.getElementById('date');
 const tbody = document.getElementById('tbody');
 const statsEl = document.getElementById('stats');
 const miniCalEl = document.getElementById('miniCalendar');
+const statusDot = document.getElementById('statusDot');
+const saveStatus = document.getElementById('saveStatus');
 
-// ==================== УТИЛИТЫ ====================
 function defaultQuarters() {
   const now = new Date();
   const y = now.getMonth() >= 8 ? now.getFullYear() : now.getFullYear() - 1;
@@ -1373,23 +847,10 @@ function defaultQuarters() {
     { name: '4 четверть', from: `${y+1}-04-01`, to: `${y+1}-05-31` }
   ];
 }
-function todayStr() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-}
-function formatDate(d) {
-  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-}
-function formatDateRu(str) {
-  if (!str) return '';
-  const [y,m,d] = str.split('-');
-  return `${d}.${m}.${y}`;
-}
-function dateRange(from, to) {
-  const res = []; let cur = new Date(from+'T00:00:00'); const end = new Date(to+'T00:00:00');
-  while (cur <= end) { res.push(formatDate(cur)); cur.setDate(cur.getDate()+1); }
-  return res;
-}
+function todayStr() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+function formatDate(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+function formatDateRu(str) { if (!str) return ''; const [y,m,d] = str.split('-'); return `${d}.${m}.${y}`; }
+function dateRange(from, to) { const res = []; let cur = new Date(from+'T00:00:00'); const end = new Date(to+'T00:00:00'); while (cur <= end) { res.push(formatDate(cur)); cur.setDate(cur.getDate()+1); } return res; }
 function dowOf(str) { return new Date(str+'T00:00:00').getDay(); }
 function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
@@ -1404,11 +865,17 @@ function getDayLessons(dateStr) {
 }
 function isEducationDay(dateStr) { return getDayLessons(dateStr) > 0; }
 
-// ==================== ТЕМА / АКЦЕНТ ====================
 function setTheme(theme) {
-  if (theme === 'light') document.body.classList.add('light-theme');
-  else document.body.classList.remove('light-theme');
-  document.querySelectorAll('.theme-btn').forEach((btn, i) => btn.classList.toggle('active', (i===0 && theme==='dark') || (i===1 && theme==='light')));
+  if (theme === 'auto') {
+    const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    document.body.classList.toggle('light-theme', !isDark);
+  } else {
+    document.body.classList.toggle('light-theme', theme === 'light');
+  }
+  document.querySelectorAll('.theme-btn').forEach((btn, i) => {
+    const labels = ['dark', 'light', 'auto'];
+    btn.classList.toggle('active', labels[i] === theme);
+  });
   localStorage.setItem(LS_THEME, theme);
 }
 function setAccent(hex, rgbStr) {
@@ -1417,9 +884,7 @@ function setAccent(hex, rgbStr) {
   document.documentElement.style.setProperty('--primary-hover', hex);
   document.documentElement.style.setProperty('--primary-dark', hex);
   localStorage.setItem(LS_ACCENT, JSON.stringify({hex, rgbStr}));
-  document.querySelectorAll('.color-dot').forEach(dot => {
-    dot.classList.toggle('active', dot.style.backgroundColor === hex || dot.style.background === hex);
-  });
+  document.querySelectorAll('.color-dot').forEach(dot => { dot.classList.toggle('active', dot.style.backgroundColor === hex || dot.style.background === hex); });
 }
 function loadPrefs() {
   const th = localStorage.getItem(LS_THEME) || 'dark';
@@ -1428,7 +893,6 @@ function loadPrefs() {
   if (ac) setAccent(ac.hex, ac.rgbStr);
 }
 
-// ==================== АВТОРИЗАЦИЯ ====================
 async function doLogin() {
   const email = document.getElementById('loginEmail').value.trim();
   const pass = document.getElementById('loginPass').value;
@@ -1442,21 +906,25 @@ async function doLogin() {
   if (error) { err.textContent = error.message; return; }
   await afterLogin(data.user);
 }
-
 async function doLogout() {
   await sb.auth.signOut();
-  currentUser = null;
-  currentClassId = null;
-  studentIds = [];
-  students = [];
-  absences = {};
+  currentUser = null; currentClassId = null; studentIds = []; students = []; absences = {};
   document.getElementById('loginScreen').style.display = 'flex';
   document.querySelector('.container').style.display = 'none';
+}
+function openPasswordModal() { document.getElementById('newPassInput').value = ''; document.getElementById('passwordBackdrop').classList.add('open'); }
+async function saveNewPassword() {
+  const p = document.getElementById('newPassInput').value;
+  if (p.length < 6) { alert('Пароль должен быть минимум 6 символов'); return; }
+  const { error } = await sb.auth.updateUser({ password: p });
+  if (error) { alert(error.message); return; }
+  document.getElementById('passwordBackdrop').classList.remove('open');
+  toast('Пароль успешно изменён');
+  await logAction('Смена пароля');
 }
 
 async function afterLogin(user) {
   currentUser = user;
-
   const { data: cls, error } = await sb.from('classes').select('*').eq('owner_id', user.id).order('id').limit(1);
   if (error) { toast(error.message); return; }
   let classRow;
@@ -1465,9 +933,7 @@ async function afterLogin(user) {
     if (e2) { toast(e2.message); return; }
     classRow = nc;
     await sb.from('class_settings').insert({ class_id: classRow.id });
-  } else {
-    classRow = cls[0];
-  }
+  } else { classRow = cls[0]; }
   currentClassId = classRow.id;
   className = classRow.name || '';
 
@@ -1486,11 +952,13 @@ async function afterLogin(user) {
   updateReport2Badge();
 }
 
-// ==================== ЗАГРУЗКА / СОХРАНЕНИЕ ====================
 async function loadAll() {
-  const { data: st } = await sb.from('students').select('id, full_name, position').eq('class_id', currentClassId).order('position');
+  statusDot.className = 'status-dot connected';
+  const { data: st } = await sb.from('students').select('id, full_name, position, note').eq('class_id', currentClassId).order('position');
   students = (st || []).map(r => r.full_name);
   studentIds = (st || []).map(r => r.id);
+  studentNotes = {};
+  (st || []).forEach(r => { if (r.note) studentNotes[r.id] = r.note; });
 
   absences = {};
   if (studentIds.length) {
@@ -1499,13 +967,7 @@ async function loadAll() {
       const idx = studentIds.indexOf(a.student_id);
       if (idx < 0) return;
       if (!absences[a.date]) absences[a.date] = {};
-      absences[a.date][idx] = {
-        reason: a.reason,
-        full: a.is_full_day !== false,
-        from: a.lesson_from,
-        to: a.lesson_to,
-        comment: a.comment || ''
-      };
+      absences[a.date][idx] = { reason: a.reason, full: a.is_full_day !== false, from: a.lesson_from, to: a.lesson_to, comment: a.comment || '' };
     });
   }
 
@@ -1522,6 +984,8 @@ async function loadAll() {
 
 async function saveAbsencesForDay(day) {
   if (!currentClassId || !studentIds.length) return;
+  statusDot.className = 'status-dot saving';
+  saveStatus.textContent = 'Сохранение...';
   const dayData = absences[day] || {};
   const { data: existing } = await sb.from('absences').select('id, student_id').eq('date', day).in('student_id', studentIds);
   const existingByStudent = {};
@@ -1534,99 +998,198 @@ async function saveAbsencesForDay(day) {
     if (!a) {
       if (existingByStudent[sid]) toDelete.push(existingByStudent[sid]);
     } else {
-      toUpsert.push({
-        student_id: sid,
-        date: day,
-        reason: a.reason,
-        is_full_day: a.full !== false,
-        lesson_from: a.full === false ? a.from : null,
-        lesson_to: a.full === false ? a.to : null,
-        comment: a.comment || null
-      });
+      toUpsert.push({ student_id: sid, date: day, reason: a.reason, is_full_day: a.full !== false, lesson_from: a.full === false ? a.from : null, lesson_to: a.full === false ? a.to : null, comment: a.comment || null });
     }
   });
 
   try {
     if (toDelete.length) await sb.from('absences').delete().in('id', toDelete);
     if (toUpsert.length) await sb.from('absences').upsert(toUpsert, { onConflict: 'student_id,date' });
-  } catch (e) { console.warn(e); toast('Ошибка сохранения'); }
+    statusDot.className = 'status-dot connected';
+    saveStatus.textContent = '✓ Сохранено';
+    setTimeout(() => { if (saveStatus.textContent === '✓ Сохранено') saveStatus.textContent = ''; }, 2000);
+  } catch (e) { console.warn(e); toast('Ошибка сохранения'); statusDot.className = 'status-dot connected'; saveStatus.textContent = 'Ошибка'; }
 }
 
-async function saveSettings() {
-  if (!currentClassId) return;
-  try {
-    await sb.from('class_settings').upsert({
-      class_id: currentClassId,
-      schedule, quarters,
-      excluded_dates: excludedDates,
-      special_days: specialDays
-    }, { onConflict: 'class_id' });
-  } catch (e) { console.warn(e); toast('Ошибка сохранения настроек'); }
+async function logAction(action) {
+  try { await sb.from('logs').insert({ user_id: currentUser.id, action }); } catch (e) {}
 }
 
-function persistChange() {
+function persistChange(desc = '') {
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => saveAbsencesForDay(dateInput.value), 500);
+  if (desc) logAction(desc);
 }
 
-// ==================== РЕНДЕР / UI ====================
+function pushUndo(desc) {
+  undoStack.push({ date: dateInput.value, data: JSON.parse(JSON.stringify(absences[dateInput.value] || {})), desc });
+  if (undoStack.length > 20) undoStack.shift();
+}
+async function undoLast() {
+  if (!undoStack.length) { toast('Нечего отменять'); return; }
+  const state = undoStack.pop();
+  absences[state.date] = state.data;
+  if (dateInput.value !== state.date) dateInput.value = state.date;
+  await saveAbsencesForDay(state.date);
+  render();
+  toast(`Отменено: ${state.desc}`);
+}
+
 function updateHeader() {
   const safeClass = (className || '').trim();
   const classEl = document.getElementById('sideClassName');
   if (classEl) classEl.textContent = safeClass ? `${safeClass} класс` : 'Класс не указан';
   document.title = safeClass ? `Посещаемость ${safeClass}` : 'Посещаемость';
 }
-
-function onDateChange() { expandedRows.clear(); render(); }
+function onDateChange() { expandedRows.clear(); selectedStudents.clear(); updateBulkPanel(); render(); }
 function changeDate(days) {
   const d = new Date(dateInput.value + 'T00:00:00');
   d.setDate(d.getDate() + days);
   dateInput.value = formatDate(d);
-  expandedRows.clear(); render();
+  expandedRows.clear(); selectedStudents.clear(); updateBulkPanel(); render();
 }
-function setToday() { dateInput.value = todayStr(); expandedRows.clear(); render(); }
+function setToday() { dateInput.value = todayStr(); expandedRows.clear(); selectedStudents.clear(); updateBulkPanel(); render(); }
 function collapseAllRows() { expandedRows.clear(); render(); toast('Все детали свёрнуты'); }
 
 function renderMiniCalendar() {
   miniCalEl.innerHTML = '';
   const today = new Date();
   for (let i = -7; i <= 6; i++) {
-    const d = new Date(today);
-    d.setDate(today.getDate() + i);
-    const str = formatDate(d);
-    const dow = d.getDay();
-    const sp = getSpecialDay(str);
-    const isWeekend = (dow === 0 || dow === 6) && !sp;
+    const d = new Date(today); d.setDate(today.getDate() + i);
+    const str = formatDate(d); const dow = d.getDay();
+    const sp = getSpecialDay(str); const isWeekend = (dow === 0 || dow === 6) && !sp;
     const el = document.createElement('div');
     el.className = 'mini-day' + (str === dateInput.value ? ' active' : '') + (isWeekend ? ' is-weekend' : '');
     if (sp) el.classList.add('is-special');
     if (absences[str] && Object.keys(absences[str]).length > 0) el.classList.add('has-absences');
-    el.innerHTML = `
-      <span class="mini-dow">${['Вс','Пн','Вт','Ср','Чт','Пт','Сб'][dow]}</span>
-      <span class="mini-num">${d.getDate()}</span>
-      <span class="mini-dot"></span>
-    `;
-    if (!isWeekend) el.onclick = () => { dateInput.value = str; expandedRows.clear(); render(); };
+    el.innerHTML = `<span class="mini-dow">${['Вс','Пн','Вт','Ср','Чт','Пт','Сб'][dow]}</span><span class="mini-num">${d.getDate()}</span><span class="mini-dot"></span>`;
+    if (!isWeekend) el.onclick = () => { dateInput.value = str; expandedRows.clear(); selectedStudents.clear(); updateBulkPanel(); render(); };
     miniCalEl.appendChild(el);
   }
 }
 
 function markAllPresent() {
   if (!confirm('Отметить всех присутствующими? Все отметки за этот день будут удалены.')) return;
+  pushUndo('Сброс дня');
   absences[dateInput.value] = {};
-  expandedRows.clear();
-  persistChange(); render();
+  expandedRows.clear(); selectedStudents.clear(); updateBulkPanel();
+  persistChange(`Сброс дня на ${formatDateRu(dateInput.value)}`); render();
 }
 function copyYesterday() {
-  const cur = new Date(dateInput.value + 'T00:00:00');
-  cur.setDate(cur.getDate() - 1);
-  const yStr = formatDate(cur);
-  const yData = absences[yStr];
+  const cur = new Date(dateInput.value + 'T00:00:00'); cur.setDate(cur.getDate() - 1);
+  const yStr = formatDate(cur); const yData = absences[yStr];
   if (!yData || Object.keys(yData).length === 0) { toast('Вчера отсутствующих не было'); return; }
+  pushUndo('Копирование со вчера');
   absences[dateInput.value] = JSON.parse(JSON.stringify(yData));
-  expandedRows.clear();
-  persistChange(); render();
+  expandedRows.clear(); selectedStudents.clear(); updateBulkPanel();
+  persistChange(`Копирование со вчера на ${formatDateRu(dateInput.value)}`); render();
   toast('Отметки скопированы со вчерашнего дня');
+}
+function copyToWeek() {
+  const yData = absences[dateInput.value];
+  if (!yData || Object.keys(yData).length === 0) { toast('Сегодня отсутствующих нет'); return; }
+  pushUndo('Копирование на 5 дней');
+  let d = new Date(dateInput.value + 'T00:00:00');
+  let count = 0;
+  for (let i = 1; i <= 5; i++) {
+    d.setDate(d.getDate() + 1);
+    const str = formatDate(d);
+    if (!isEducationDay(str)) continue;
+    absences[str] = JSON.parse(JSON.stringify(yData));
+    saveAbsencesForDay(str);
+    count++;
+  }
+  render();
+  toast(`Скопировано на ${count} учебных дней`);
+}
+
+function onSearch() {
+  searchQuery = document.getElementById('searchInput').value.toLowerCase().trim();
+  render();
+}
+
+function toggleSelectAll(chk) {
+  if (chk.checked) { students.forEach((_, i) => selectedStudents.add(i)); }
+  else { selectedStudents.clear(); }
+  updateBulkPanel();
+  render();
+}
+function toggleSelect(idx) {
+  if (selectedStudents.has(idx)) selectedStudents.delete(idx); else selectedStudents.add(idx);
+  updateBulkPanel();
+  render();
+}
+function updateBulkPanel() {
+  const panel = document.getElementById('bulkPanel');
+  const info = document.getElementById('bulkInfo');
+  if (selectedStudents.size > 0) {
+    panel.classList.add('visible');
+    info.textContent = `Выбрано: ${selectedStudents.size}`;
+    const sel = document.getElementById('bulkReason');
+    if (sel.options.length <= 1) {
+      sel.innerHTML = '<option value="">-- Причина --</option>' + Object.entries(REASONS).filter(([k])=>k).map(([k,r]) => `<option value="${k}">${r.emoji} ${r.label}</option>`).join('');
+    }
+  } else { panel.classList.remove('visible'); }
+}
+function clearSelection() {
+  selectedStudents.clear();
+  document.getElementById('selectAll').checked = false;
+  updateBulkPanel();
+  render();
+}
+async function applyBulkReason() {
+  const reason = document.getElementById('bulkReason').value;
+  if (!reason) { toast('Выберите причину'); return; }
+  pushUndo('Массовое изменение статуса');
+  const d = dateInput.value;
+  if (!absences[d]) absences[d] = {};
+  selectedStudents.forEach(idx => { absences[d][idx] = { reason, full: true, comment: '' }; });
+  persistChange(`Массовое изменение статуса (${reason})`);
+  expandedRows.clear(); selectedStudents.clear(); updateBulkPanel(); render();
+  toast('Статус обновлён для выбранных');
+}
+
+function openStudentStats(idx) {
+  const name = students[idx];
+  const note = studentNotes[studentIds[idx]] || '';
+  document.getElementById('statsTitle').textContent = name;
+  
+  let totalAbs = 0;
+  const byReason = {}; REASON_KEYS.forEach(k => byReason[k] = 0);
+  Object.values(absences).forEach(day => {
+    const a = day[idx];
+    if (a && a.reason) { totalAbs++; byReason[a.reason] = (byReason[a.reason] || 0) + 1; }
+  });
+
+  const labels = { medical: 'Мед. справка', ozdorovlenie: 'Санаторий', health: 'Здоровье', family: 'Семья', sport: 'Соревнования', cultural: 'Культ-массовые', norespect: 'Без уважительной', other: 'Иная' };
+  let rowsHtml = REASON_KEYS.filter(k => byReason[k] > 0).map(k => 
+    `<div class="stats-bar-item"><span>${labels[k]}</span> <b>${byReason[k]}</b></div>`
+  ).join('');
+
+  const html = `
+    <p class="hint" style="margin-bottom:12px;">Всего пропусков (дней): <b style="color:var(--danger); font-size:16px;">${totalAbs}</b></p>
+    <div class="stats-bar-student">${rowsHtml || '<div class="empty-state">Пропусков нет</div>'}</div>
+    <div class="form-group" style="margin-top:20px;">
+      <label>Заметка к ученику (видна только вам)</label>
+      <textarea id="studentNoteInput" style="min-height:80px;" placeholder="Например: аллергия на физкультуру...">${escapeHtml(note)}</textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="document.getElementById('studentStatsBackdrop').classList.remove('open')">Закрыть</button>
+      <button class="btn-primary" onclick="saveStudentNote(${idx})">Сохранить заметку</button>
+    </div>
+  `;
+  document.getElementById('studentStatsContent').innerHTML = html;
+  document.getElementById('studentStatsBackdrop').classList.add('open');
+}
+async function saveStudentNote(idx) {
+  const note = document.getElementById('studentNoteInput').value.trim();
+  const sid = studentIds[idx];
+  const { error } = await sb.from('students').update({ note }).eq('id', sid);
+  if (error) { toast(error.message); return; }
+  if (note) studentNotes[sid] = note; else delete studentNotes[sid];
+  document.getElementById('studentStatsBackdrop').classList.remove('open');
+  toast('Заметка сохранена');
+  logAction(`Сохранена заметка для ${students[idx]}`);
 }
 
 function openIntervalModal(prefillIdx) {
@@ -1635,19 +1198,15 @@ function openIntervalModal(prefillIdx) {
   sel.innerHTML = students.map((name, i) => `<option value="${i}">${escapeHtml(name)}</option>`).join('');
   if (typeof prefillIdx === 'number' && prefillIdx >= 0 && prefillIdx < students.length) sel.value = prefillIdx;
   const reasonSel = document.getElementById('intervalReason');
-  reasonSel.innerHTML = Object.entries(REASONS).filter(([k]) => k).map(([k, r]) =>
-    `<option value="${k}">${r.emoji} ${r.label}</option>`
-  ).join('');
+  reasonSel.innerHTML = Object.entries(REASONS).filter(([k]) => k).map(([k, r]) => `<option value="${k}">${r.emoji} ${r.label}</option>`).join('');
   const d = dateInput.value || todayStr();
   document.getElementById('intervalFrom').value = d;
   document.getElementById('intervalTo').value = d;
   document.getElementById('intervalComment').value = '';
-  document.getElementById('intervalWarning').style.display = 'none';
   document.getElementById('intervalBackdrop').classList.add('open');
   setTimeout(() => document.getElementById('intervalFrom').focus(), 100);
 }
 function closeIntervalModal() { document.getElementById('intervalBackdrop').classList.remove('open'); }
-
 async function saveInterval() {
   const idx = parseInt(document.getElementById('intervalStudent').value, 10);
   const reason = document.getElementById('intervalReason').value;
@@ -1669,23 +1228,25 @@ async function saveInterval() {
   });
   if (!affected.length) { alert('В выбранном диапазоне не оказалось учебных дней'); return; }
   closeIntervalModal();
-  expandedRows.clear();
-  render();
+  expandedRows.clear(); selectedStudents.clear(); updateBulkPanel(); render();
   for (const d of affected) await saveAbsencesForDay(d);
+  logAction(`Интервал для ${students[idx]} (${formatDateRu(from)}–${formatDateRu(to)})`);
   toast(`Добавлено ${affected.length} дн.`);
 }
 
 function getDayData() { if (!absences[dateInput.value]) absences[dateInput.value] = {}; return absences[dateInput.value]; }
 function setReason(idx, reason) {
+  pushUndo('Изменение статуса');
   const d = dateInput.value;
   if (!absences[d]) absences[d] = {};
   const prev = absences[d][idx];
   if (!reason) delete absences[d][idx];
   else if (prev && prev.reason && prev.full === false) absences[d][idx] = { reason, full: false, from: prev.from, to: prev.to, comment: prev.comment };
   else absences[d][idx] = { reason, full: true, comment: prev ? prev.comment : '' };
-  persistChange();
+  persistChange(`${formatDateRu(d)}: ${students[idx]} — ${REASONS[reason]?.label || 'Присутствует'}`);
 }
 function setPartial(idx, from, to) {
+  pushUndo('Изменение деталей');
   const d = dateInput.value;
   const cur = absences[d]?.[idx];
   if (!cur || !cur.reason) return;
@@ -1700,6 +1261,7 @@ function setPartial(idx, from, to) {
   persistChange();
 }
 function setComment(idx, text) {
+  pushUndo('Изменение комментария');
   const d = dateInput.value;
   if (!absences[d]?.[idx]) return;
   absences[d][idx].comment = text;
@@ -1716,9 +1278,23 @@ function render() {
     <div class="stat present"><div class="label">Присутствуют</div><div class="value">${total - absentCount}</div></div>
     <div class="stat absent"><div class="label">Отсутствуют</div><div class="value">${absentCount}</div></div>`;
 
+  // Warning banner for 3+ days
+  const eduDaysThisQuarter = getEducationDays(quarters[0].from, todayStr());
+  let warnNames = [];
+  students.forEach((name, i) => {
+    if (maxConsecutiveFull(i, eduDaysThisQuarter) >= 3) warnNames.push(name);
+  });
+  const banner = document.getElementById('warningBanner');
+  if (warnNames.length > 0) {
+    banner.classList.add('visible');
+    document.getElementById('warningText').textContent = `У ${warnNames.length} учеников 3+ дня пропусков подряд: ${warnNames.join(', ')}`;
+  } else {
+    banner.classList.remove('visible');
+  }
+
   tbody.innerHTML = '';
   if (students.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="4"><div class="empty-state"><span class="emoji">📭</span>Список класса пуст. Добавьте учеников через «Редактировать список».</div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state"><span class="emoji">📭</span>Список класса пуст. Добавьте учеников через «Редактировать список».</div></td></tr>`;
     return;
   }
 
@@ -1726,6 +1302,8 @@ function render() {
   const sp = getSpecialDay(dateInput.value);
 
   students.forEach((name, i) => {
+    if (searchQuery && !name.toLowerCase().includes(searchQuery)) return;
+    
     const cur = day[i] || null;
     const curReason = cur?.reason || '';
     const tr = document.createElement('tr');
@@ -1741,12 +1319,7 @@ function render() {
         if (lessonsToday > 0) {
           const fV = cur.full ? 1 : cur.from;
           const tV = cur.full ? lessonsToday : cur.to;
-          fieldsHtml += `
-            <div class="partial-inputs">
-              <input type="number" class="partial-from" data-index="${i}" min="1" max="${lessonsToday}" value="${fV}">
-              <span>—</span>
-              <input type="number" class="partial-to" data-index="${i}" min="1" max="${lessonsToday}" value="${tV}">
-            </div>`;
+          fieldsHtml += `<div class="partial-inputs"><input type="number" class="partial-from" data-index="${i}" min="1" max="${lessonsToday}" value="${fV}"><span>—</span><input type="number" class="partial-to" data-index="${i}" min="1" max="${lessonsToday}" value="${tV}"></div>`;
         }
         fieldsHtml += `<input type="text" class="comment-input" data-index="${i}" placeholder="Комментарий (справка №...)" value="${escapeHtml(cur.comment || '')}">`;
         detailHtml = `<div class="row-details">${fieldsHtml}<div class="row-details-actions"><button class="btn-collapse-row" data-index="${i}">✓ Свернуть</button></div></div>`;
@@ -1761,11 +1334,15 @@ function render() {
       }
     }
 
+    const hasNote = studentNotes[studentIds[i]];
+    const noteIcon = hasNote ? `<span class="note-icon" title="${escapeHtml(hasNote)}" onclick="openStudentStats(${i})">📝</span>` : '';
+    
     tr.innerHTML = `
+      <td><input type="checkbox" class="chk-student" data-index="${i}" ${selectedStudents.has(i) ? 'checked' : ''} onchange="toggleSelect(${i})"></td>
       <td style="color:var(--muted);font-weight:600;">${i + 1}</td>
       <td class="student-name">
-        <span class="name-text">${escapeHtml(name)}</span>
-        <button class="btn-quick-interval" data-index="${i}" title="Добавить интервал для этого ученика">📅</button>
+        <span class="name-text" onclick="openStudentStats(${i})">${escapeHtml(name)}</span>${noteIcon}
+        <button class="btn-quick-interval" data-index="${i}" title="Добавить интервал">📅</button>
       </td>
       <td><span class="badge ${curReason ? 'absent' : 'present'}">${curReason ? '🔴 Отсутствует' : '🟢 Присутствует'}</span></td>
       <td>
@@ -1803,14 +1380,10 @@ function render() {
     inp.addEventListener('change', e => { setComment(parseInt(e.target.dataset.index, 10), e.target.value); });
   });
   tbody.querySelectorAll('.btn-quick-interval').forEach(btn => {
-    btn.addEventListener('click', e => {
-      e.stopPropagation();
-      openIntervalModal(parseInt(btn.dataset.index, 10));
-    });
+    btn.addEventListener('click', e => { e.stopPropagation(); openIntervalModal(parseInt(btn.dataset.index, 10)); });
   });
 }
 
-// ==================== РЕДАКТИРОВАНИЕ СПИСКА ====================
 function openEditList() {
   document.getElementById('classListEditor').value = students.join('\n');
   document.getElementById('modalBackdrop').classList.add('open');
@@ -1835,28 +1408,12 @@ async function saveClassList() {
 
   document.getElementById('modalBackdrop').classList.remove('open');
   await loadAll();
-  expandedRows.clear();
-  render();
+  expandedRows.clear(); selectedStudents.clear(); updateBulkPanel(); render();
   toast('Список сохранён');
+  logAction('Изменён список класса');
 }
 
-// ==================== ОТЧЁТЫ ====================
 function getEducationDays(from, to) { return dateRange(from, to).filter(d => isEducationDay(d)); }
-function findConsecutiveFullRuns(idx, eduDays, minLength) {
-  const runs = []; let start = null, reasons = [];
-  for (let i = 0; i <= eduDays.length; i++) {
-    const abs = i < eduDays.length ? absences[eduDays[i]]?.[idx] : null;
-    const isFull = abs && abs.reason && abs.full;
-    if (isFull) { if (start === null) start = i; reasons.push(abs.reason); }
-    else {
-      if (start !== null && (i - start) >= minLength) {
-        runs.push({ from: eduDays[start], to: eduDays[i - 1], length: i - start, reasons: [...new Set(reasons)] });
-      }
-      start = null; reasons = [];
-    }
-  }
-  return runs;
-}
 function maxConsecutiveFull(idx, eduDays, reason = null) {
   let max = 0, cur = 0;
   for (const d of eduDays) {
@@ -1871,28 +1428,16 @@ function hasFullReason(idx, reason, eduDays) {
 }
 function buildReport1(from, to, eduDays) {
   const analysis = students.map((name, idx) => ({
-    name,
-    anyMax: maxConsecutiveFull(idx, eduDays),
+    name, anyMax: maxConsecutiveFull(idx, eduDays),
     medMax: maxConsecutiveFull(idx, eduDays, 'medical'),
     healthMax: maxConsecutiveFull(idx, eduDays, 'health'),
-    familyAny: hasFullReason(idx, 'family', eduDays),
-    sportAny: hasFullReason(idx, 'sport', eduDays),
-    culturalAny: hasFullReason(idx, 'cultural', eduDays),
-    ozdAny: hasFullReason(idx, 'ozdorovlenie', eduDays),
-    norespAny: hasFullReason(idx, 'norespect', eduDays),
-    otherAny: hasFullReason(idx, 'other', eduDays)
+    familyAny: hasFullReason(idx, 'family', eduDays), sportAny: hasFullReason(idx, 'sport', eduDays),
+    culturalAny: hasFullReason(idx, 'cultural', eduDays), ozdAny: hasFullReason(idx, 'ozdorovlenie', eduDays),
+    norespAny: hasFullReason(idx, 'norespect', eduDays), otherAny: hasFullReason(idx, 'other', eduDays)
   }));
   const f = pred => analysis.filter(pred).map(a => a.name);
   const respSet = new Set([...f(a => a.familyAny), ...f(a => a.sportAny), ...f(a => a.culturalAny), ...f(a => a.ozdAny)]);
-  return {
-    from, to, total: students.length,
-    s3plus: f(a => a.anyMax >= 3),
-    med4: f(a => a.medMax >= 3),
-    health4: f(a => a.healthMax >= 3),
-    resp: [...respSet],
-    noresp: f(a => a.norespAny),
-    other: f(a => a.otherAny)
-  };
+  return { from, to, total: students.length, s3plus: f(a => a.anyMax >= 3), med4: f(a => a.medMax >= 3), health4: f(a => a.healthMax >= 3), resp: [...respSet], noresp: f(a => a.norespAny), other: f(a => a.otherAny) };
 }
 function runReport1() {
   const from = document.getElementById('report1From').value;
@@ -1908,31 +1453,20 @@ function runReport1() {
     ['Пропустили 3 и более дня подряд (любая причина)', lastReport1.s3plus.length, lastReport1.s3plus],
     ['Пропустили 3 и более дня по мед. справке', lastReport1.med4.length, lastReport1.med4],
     ['Пропустили 3 и более дня по заявлению (здоровье)', lastReport1.health4.length, lastReport1.health4],
-    ['Уважительные с документами (семья, спорт, культ, санаторий)', lastReport1.resp.length, lastReport1.resp],
+    ['Уважительные с документами', lastReport1.resp.length, lastReport1.resp],
     ['Иная причина', lastReport1.other.length, lastReport1.other],
     ['Без уважительной причины', lastReport1.noresp.length, lastReport1.noresp]
   ];
   document.getElementById('report1Output').innerHTML = `
     <div class="report-block" id="report1Block">
-      <div class="report-title-row">
-        <h3>📑 Отчёт №1. Сведения об учащихся${c ? ' ' + c + ' класса' : ''}</h3>
-        <button class="btn-collapse" onclick="toggleCollapse(1)"><span class="collapse-icon">▲</span> Свернуть</button>
-      </div>
+      <div class="report-title-row"><h3>📑 Отчёт №1. Сведения об учащихся${c ? ' ' + c + ' класса' : ''}</h3><button class="btn-collapse" onclick="toggleCollapse(1)"><span class="collapse-icon">▲</span> Свернуть</button></div>
       <div class="report-content">
         <p class="meta">Период: <b>${formatDateRu(from)}</b> — <b>${formatDateRu(to)}</b> · Учебных дней: <b>${eduDays.length}</b></p>
         <table class="report-table">
           <thead><tr><th>Показатель</th><th style="width:80px;text-align:right">Кол-во</th><th style="width:80px;text-align:right">Доля</th></tr></thead>
-          <tbody>${rows.map(([lbl, cnt, list]) => `
-              <tr>
-                <td>${lbl}${list && list.length ? '<br>' + listHtml(list) : ''}</td>
-                <td class="num">${cnt}</td>
-                <td class="num muted">${cnt ? pct(cnt)+'%' : '—'}</td>
-              </tr>`).join('')}</tbody>
+          <tbody>${rows.map(([lbl, cnt, list]) => `<tr><td>${lbl}${list && list.length ? '<br>' + listHtml(list) : ''}</td><td class="num">${cnt}</td><td class="num muted">${cnt ? pct(cnt)+'%' : '—'}</td></tr>`).join('')}</tbody>
         </table>
-        <div class="report-actions">
-          <button class="btn-secondary" onclick="exportExcel(1)">📊 Скачать Excel</button>
-          <button class="btn-secondary" onclick="printReport(1, 'Сведения об учащихся', '${formatDateRu(from)} — ${formatDateRu(to)}')">🖨️ Печать</button>
-        </div>
+        <div class="report-actions"><button class="btn-secondary" onclick="exportExcel(1)">📊 Скачать Excel</button><button class="btn-secondary" onclick="printReport(1, 'Сведения об учащихся', '${formatDateRu(from)} — ${formatDateRu(to)}')">🖨️ Печать / PDF</button></div>
       </div>
     </div>`;
 }
@@ -1940,20 +1474,25 @@ function buildReport2(from, to, eduDays) {
   const byReason = {}; REASON_KEYS.forEach(k => byReason[k] = 0);
   let total = 0;
   for (const d of eduDays) {
-    const dayAbs = absences[d] || {};
-    const lessons = getDayLessons(d);
+    const dayAbs = absences[d] || {}; const lessons = getDayLessons(d);
     for (const a of Object.values(dayAbs)) {
       let n = lessons;
-      if (a.full === false) {
-        const f = Math.max(1, a.from); const t = Math.min(lessons, a.to);
-        n = (t >= f) ? (t - f + 1) : 0;
-      }
+      if (a.full === false) { const f = Math.max(1, a.from); const t = Math.min(lessons, a.to); n = (t >= f) ? (t - f + 1) : 0; }
       if (n > 0) { total += n; byReason[a.reason] = (byReason[a.reason] || 0) + n; }
     }
   }
   const longAbs = [];
   students.forEach((name, idx) => {
-    findConsecutiveFullRuns(idx, eduDays, 5).forEach(r => longAbs.push({ name, ...r }));
+    let start = null, reasons = [];
+    for (let i = 0; i <= eduDays.length; i++) {
+      const abs = i < eduDays.length ? absences[eduDays[i]]?.[idx] : null;
+      const isFull = abs && abs.reason && abs.full;
+      if (isFull) { if (start === null) start = i; reasons.push(abs.reason); }
+      else {
+        if (start !== null && (i - start) >= 5) longAbs.push({ name, from: eduDays[start], to: eduDays[i - 1], length: i - start, reasons: [...new Set(reasons)] });
+        start = null; reasons = [];
+      }
+    }
   });
   return { from, to, total, byReason, longAbs };
 }
@@ -1970,50 +1509,21 @@ function runReport2() {
   const c = (className || '').trim();
   const labels = { medical: 'Мед. справка', ozdorovlenie: 'Санаторий', health: 'Заявление (здоровье)', family: 'Заявление (семья)', sport: 'Соревнования', cultural: 'Культ-массовые', norespect: 'Без уважительной', other: 'Иная' };
   const subRows = REASON_KEYS.map(k => `<tr class="sub"><td>${labels[k]}</td><td class="num">${lastReport2.byReason[k] || 0}</td></tr>`).join('');
-  const longRows = lastReport2.longAbs.length
-    ? lastReport2.longAbs.map((la, i) => `
-        <tr><td>${i+1}</td><td>${escapeHtml(la.name)}</td>
-          <td>${formatDateRu(la.from)}-${formatDateRu(la.to)}</td>
-          <td>${la.reasons.map(r => REASONS[r]?.label || r).join(', ')}</td></tr>`).join('')
-    : `<tr><td colspan="4" class="empty-state">🎉 Нет учащихся с 5+ днями пропусков!</td></tr>`;
+  const longRows = lastReport2.longAbs.length ? lastReport2.longAbs.map((la, i) => `<tr><td>${i+1}</td><td>${escapeHtml(la.name)}</td><td>${formatDateRu(la.from)}-${formatDateRu(la.to)}</td><td>${la.reasons.map(r => REASONS[r]?.label || r).join(', ')}</td></tr>`).join('') : `<tr><td colspan="4" class="empty-state">🎉 Нет учащихся с 5+ днями пропусков!</td></tr>`;
   document.getElementById('report2Output').innerHTML = `
     <div class="report-block" id="report2Block">
-      <div class="report-title-row">
-        <h3>📚 Отчёт №2. Пропущенные уроки${c ? ' (' + c + ')' : ''}</h3>
-        <button class="btn-collapse" onclick="toggleCollapse(2)"><span class="collapse-icon">▲</span> Свернуть</button>
-      </div>
+      <div class="report-title-row"><h3>📚 Отчёт №2. Пропущенные уроки${c ? ' (' + c + ')' : ''}</h3><button class="btn-collapse" onclick="toggleCollapse(2)"><span class="collapse-icon">▲</span> Свернуть</button></div>
       <div class="report-content">
         <p class="meta">Период: <b>${formatDateRu(from)}</b> — <b>${formatDateRu(to)}</b></p>
-        <table class="report-table">
-          <thead><tr><th>Категория</th><th style="width:120px;text-align:right">Уроков</th></tr></thead>
-          <tbody>
-            <tr class="total-row"><td>Всего пропущено</td><td class="num" style="font-size:16px">${lastReport2.total}</td></tr>
-            ${subRows}
-          </tbody>
-        </table>
+        <table class="report-table"><thead><tr><th>Категория</th><th style="width:120px;text-align:right">Уроков</th></tr></thead><tbody><tr class="total-row"><td>Всего пропущено</td><td class="num" style="font-size:16px">${lastReport2.total}</td></tr>${subRows}</tbody></table>
         <h4 style="margin:20px 0 10px; font-size:15px;">Учащиеся с 5+ днями подряд</h4>
-        <div class="table-wrap">
-          <table class="report-table exact-table">
-            <thead><tr>
-              <th style="width: 50px;">№</th>
-              <th>ФИО учащегося<br><span style="font-size:12px; font-weight:400;">(имеющего подряд пять и<br>более дней пропусков)</span></th>
-              <th>Дата отсутствия</th>
-              <th>Причина</th>
-            </tr></thead>
-            <tbody>${longRows}</tbody>
-          </table>
-        </div>
-        <div class="report-actions">
-          <button class="btn-secondary" onclick="exportExcel(2)">📊 Скачать Excel</button>
-          <button class="btn-secondary" onclick="printReport(2, 'Количество пропущенных уроков', '${formatDateRu(from)} — ${formatDateRu(to)}')">🖨️ Печать</button>
-        </div>
+        <div class="table-wrap"><table class="report-table exact-table"><thead><tr><th style="width: 50px;">№</th><th>ФИО учащегося</th><th>Дата отсутствия</th><th>Причина</th></tr></thead><tbody>${longRows}</tbody></table></div>
+        <div class="report-actions"><button class="btn-secondary" onclick="exportExcel(2)">📊 Скачать Excel</button><button class="btn-secondary" onclick="printReport(2, 'Количество пропущенных уроков', '${formatDateRu(from)} — ${formatDateRu(to)}')">🖨️ Печать / PDF</button></div>
       </div>
     </div>`;
 }
 function runYearSummary() {
-  const c = (className || '').trim();
-  let rowsHtml = '';
-  let hasData = false;
+  const c = (className || '').trim(); let rowsHtml = ''; let hasData = false;
   quarters.forEach(q => {
     if (!q.from || !q.to) return;
     const edu = getEducationDays(q.from, q.to);
@@ -2022,33 +1532,23 @@ function runYearSummary() {
     const r = buildReport1(q.from, q.to, edu);
     rowsHtml += `<tr><td>${q.name}</td><td class="num">${edu.length}</td><td class="num">${r.s3plus.length}</td><td class="num">${r.med4.length}</td></tr>`;
   });
-  document.getElementById('yearOutput').innerHTML = hasData ? `
-    <div class="report-block">
-      <h3>📅 Сводка за учебный год ${c ? ' (' + c + ')' : ''}</h3>
-      <p class="meta">Сравнение по четвертям</p>
-      <table class="report-table">
-        <thead><tr><th>Четверть</th><th style="text-align:right">Учебных дней</th><th style="text-align:right">3+ дня подряд</th><th style="text-align:right">3+ дней по справке</th></tr></thead>
-        <tbody>${rowsHtml}</tbody>
-      </table>
-    </div>` : `<div class="report-block"><div class="empty-state">Нет данных — заполните четверти в Настройках</div></div>`;
+  document.getElementById('yearOutput').innerHTML = hasData ? `<div class="report-block"><h3>📅 Сводка за учебный год ${c ? ' (' + c + ')' : ''}</h3><p class="meta">Сравнение по четвертям</p><table class="report-table"><thead><tr><th>Четверть</th><th style="text-align:right">Учебных дней</th><th style="text-align:right">3+ дня подряд</th><th style="text-align:right">3+ дней по справке</th></tr></thead><tbody>${rowsHtml}</tbody></table></div>` : `<div class="report-block"><div class="empty-state">Нет данных</div></div>`;
 }
-function listHtml(arr) {
-  if (!arr || !arr.length) return '';
-  return `<details class="students-list"><summary>ФИО (${arr.length})</summary><ul>${arr.map(n => `<li>${escapeHtml(n)}</li>`).join('')}</ul></details>`;
-}
-function toggleCollapse(n) {
-  const b = document.getElementById('report' + n + 'Block');
-  if (b) b.classList.toggle('collapsed');
-}
+function listHtml(arr) { if (!arr || !arr.length) return ''; return `<details class="students-list"><summary>ФИО (${arr.length})</summary><ul>${arr.map(n => `<li>${escapeHtml(n)}</li>`).join('')}</ul></details>`; }
+function toggleCollapse(n) { const b = document.getElementById('report' + n + 'Block'); if (b) b.classList.toggle('collapsed'); }
 function printReport(n, title, period) {
   document.getElementById('printTitle').textContent = title;
   document.getElementById('printClass').textContent = className || '—';
   document.getElementById('printPeriod').textContent = period;
   document.body.classList.add('printing-r' + n);
-  setTimeout(() => {
-    window.print();
-    setTimeout(() => document.body.classList.remove('printing-r' + n), 300);
-  }, 50);
+  setTimeout(() => { window.print(); setTimeout(() => document.body.classList.remove('printing-r' + n), 300); }, 50);
+}
+function printClassList() {
+  document.getElementById('printTitle').textContent = 'Список класса';
+  document.getElementById('printClass').textContent = className || '—';
+  document.getElementById('printPeriod').textContent = 'Дата: ' + formatDateRu(dateInput.value);
+  document.body.classList.add('printing-class');
+  setTimeout(() => { window.print(); setTimeout(() => document.body.classList.remove('printing-class'), 300); }, 50);
 }
 function exportExcel(reportNum) {
   if (reportNum === 1 && !lastReport1) return;
@@ -2056,220 +1556,92 @@ function exportExcel(reportNum) {
   const wb = XLSX.utils.book_new();
   const wsData = [];
   if (reportNum === 1) {
-    const r = lastReport1;
-    wsData.push(['Показатель', 'Кол-во', 'ФИО']);
-    wsData.push(['Всего учеников', r.total, '']);
-    wsData.push(['3 и более дня подряд', r.s3plus.length, r.s3plus.join(', ')]);
-    wsData.push(['3 и более дня по справке', r.med4.length, r.med4.join(', ')]);
-    wsData.push(['3 и более дня по здоровью', r.health4.length, r.health4.join(', ')]);
-    wsData.push(['Уважительные с документами', r.resp.length, r.resp.join(', ')]);
-    wsData.push(['Без уважительной', r.noresp.length, r.noresp.join(', ')]);
+    const r = lastReport1; wsData.push(['Показатель', 'Кол-во', 'ФИО']);
+    wsData.push(['Всего учеников', r.total, '']); wsData.push(['3 и более дня подряд', r.s3plus.length, r.s3plus.join(', ')]);
+    wsData.push(['3 и более дня по справке', r.med4.length, r.med4.join(', ')]); wsData.push(['3 и более дня по здоровью', r.health4.length, r.health4.join(', ')]);
+    wsData.push(['Уважительные с документами', r.resp.length, r.resp.join(', ')]); wsData.push(['Без уважительной', r.noresp.length, r.noresp.join(', ')]);
   } else {
-    wsData.push(['Учащиеся с 5+ днями подряд']);
-    wsData.push(['№', 'ФИО', 'Дата', 'Причина']);
+    wsData.push(['Учащиеся с 5+ днями подряд']); wsData.push(['№', 'ФИО', 'Дата', 'Причина']);
     const r = lastReport2;
-    if (r.longAbs.length) {
-      r.longAbs.forEach((la, i) => wsData.push([i+1, la.name, `${formatDateRu(la.from)}-${formatDateRu(la.to)}`, la.reasons.map(x=>REASONS[x]?.label).join(', ')]));
-    } else {
-      wsData.push(['', 'Нет данных', '', '']);
-    }
+    if (r.longAbs.length) r.longAbs.forEach((la, i) => wsData.push([i+1, la.name, `${formatDateRu(la.from)}-${formatDateRu(la.to)}`, la.reasons.map(x=>REASONS[x]?.label).join(', ')]));
+    else wsData.push(['', 'Нет данных', '', '']);
   }
-  const ws = XLSX.utils.aoa_to_sheet(wsData);
-  XLSX.utils.book_append_sheet(wb, ws, 'Отчёт');
-  XLSX.writeFile(wb, `отчёт_${reportNum}_${todayStr()}.xlsx`);
-  toast('Excel скачан');
+  const ws = XLSX.utils.aoa_to_sheet(wsData); XLSX.utils.book_append_sheet(wb, ws, 'Отчёт');
+  XLSX.writeFile(wb, `отчёт_${reportNum}_${todayStr()}.xlsx`); toast('Excel скачан');
+}
+function exportFullClassExcel() {
+  const wb = XLSX.utils.book_new();
+  const months = new Set();
+  Object.keys(absences).forEach(d => months.add(d.slice(0, 7)));
+  if (!months.size) months.add(todayStr().slice(0, 7));
+  
+  months.forEach(m => {
+    const wsData = [['ФИО', ...Array.from({length: 31}, (_, i) => i + 1)]];
+    students.forEach((name, idx) => {
+      const row = [name];
+      for (let d = 1; d <= 31; d++) {
+        const dStr = `${m}-${String(d).padStart(2, '0')}`;
+        const a = absences[dStr]?.[idx];
+        row.push(a ? (a.reason || 'О') : '');
+      }
+      wsData.push(row);
+    });
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+    XLSX.utils.book_append_sheet(wb, ws, m);
+  });
+  XLSX.writeFile(wb, `класс_${className || 'export'}.xlsx`);
+  toast('Полный экспорт скачан');
 }
 
-// ==================== НАСТРОЙКИ ====================
 function loadSettingsForm() {
   document.getElementById('classNameInput').value = className;
-  document.getElementById('quartersForm').innerHTML = quarters.map((q, i) => `
-    <div class="quarter-row">
-      <label>${escapeHtml(q.name)}</label>
-      <input type="date" id="qFrom${i}" value="${q.from}">
-      <input type="date" id="qTo${i}" value="${q.to}">
-    </div>
-  `).join('');
+  document.getElementById('quartersForm').innerHTML = quarters.map((q, i) => `<div class="quarter-row"><label>${escapeHtml(q.name)}</label><input type="date" id="qFrom${i}" value="${q.from}"><input type="date" id="qTo${i}" value="${q.to}"></div>`).join('');
   for (let d = 1; d <= 5; d++) document.getElementById('sched'+d).value = schedule[d] ?? 7;
   document.getElementById('excludedDatesEditor').value = excludedDates.join('\n');
-  document.getElementById('spDate').value = '';
-  document.getElementById('spLessons').value = 7;
   renderSpecialDaysList();
 }
-async function saveClassName() {
-  className = document.getElementById('classNameInput').value.trim();
-  await sb.from('classes').update({ name: className }).eq('id', currentClassId);
-  updateHeader();
-  toast('Сохранено');
-}
-async function saveQuarters() {
-  quarters = quarters.map((q, i) => ({ ...q, from: document.getElementById('qFrom'+i).value, to: document.getElementById('qTo'+i).value }));
-  await saveSettings();
-  refreshQuarterSelect();
-  toast('Сохранено');
-}
-async function saveSchedule() {
-  for (let d = 1; d <= 5; d++) schedule[d] = Math.max(0, parseInt(document.getElementById('sched'+d).value) || 0);
-  schedule[0] = 0; schedule[6] = 0;
-  await saveSettings();
-  toast('Сохранено');
-}
-async function saveExcludedDates() {
-  excludedDates = document.getElementById('excludedDatesEditor').value.split('\n').map(s=>s.trim()).filter(s=>/^\d{4}-\d{2}-\d{2}$/.test(s)).sort();
-  document.getElementById('excludedDatesEditor').value = excludedDates.join('\n');
-  await saveSettings();
-  toast('Сохранено');
-}
-async function fillBelarusHolidays() {
-  const year = new Date().getFullYear();
-  const years = [year, year + 1];
-  const added = new Set(excludedDates);
-  years.forEach(y => {
-    added.add(`${y}-01-01`); added.add(`${y}-01-07`); added.add(`${y}-03-08`);
-    added.add(`${y}-05-01`); added.add(`${y}-05-09`); added.add(`${y}-07-03`);
-    added.add(`${y}-11-07`); added.add(`${y}-12-25`);
-  });
-  excludedDates = [...added].sort();
-  document.getElementById('excludedDatesEditor').value = excludedDates.join('\n');
-  await saveSettings();
-  toast(`Добавлены праздники Беларуси на ${year} и ${year+1} годы`);
-}
-async function addSpecialDay() {
-  const date = document.getElementById('spDate').value;
-  const lessons = Math.max(1, Math.min(15, parseInt(document.getElementById('spLessons').value, 10) || 1));
-  if (!date) { alert('Выберите дату'); return; }
-  if (specialDays.find(s => s.date === date)) {
-    if (!confirm('Такая дата уже есть. Заменить?')) return;
-    specialDays = specialDays.filter(s => s.date !== date);
-  }
-  specialDays.push({ date, lessons });
-  specialDays.sort((a, b) => a.date.localeCompare(b.date));
-  excludedDates = excludedDates.filter(d => d !== date);
-  document.getElementById('excludedDatesEditor').value = excludedDates.join('\n');
-  document.getElementById('spDate').value = '';
-  await saveSettings();
-  renderSpecialDaysList();
-  toast('Особый день добавлен');
-}
-async function removeSpecialDay(date) {
-  if (!confirm('Удалить особый день ' + formatDateRu(date) + '?')) return;
-  specialDays = specialDays.filter(s => s.date !== date);
-  await saveSettings();
-  renderSpecialDaysList();
-  toast('Удалено');
-}
-function renderSpecialDaysList() {
-  const el = document.getElementById('specialDaysList');
-  if (!specialDays.length) { el.innerHTML = '<div class="special-empty">Пока нет перенесённых учебных дней</div>'; return; }
-  const dowNames = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
-  el.innerHTML = specialDays.map(s => `
-    <div class="special-item">
-      <span class="special-item-date">${formatDateRu(s.date)}</span>
-      <span class="special-item-dow">(${dowNames[dowOf(s.date)]})</span>
-      <span class="special-item-lessons">${s.lessons} ур.</span>
-      <button class="special-item-del" onclick="removeSpecialDay('${s.date}')">✕</button>
-    </div>
-  `).join('');
-}
-function refreshQuarterSelect() {
-  const sel = document.getElementById('quarterSelect');
-  if (!sel) return;
-  const cur = sel.value;
-  sel.innerHTML = '<option value="">Вручную</option>' + quarters.map((q, i) => `<option value="${i}">${q.name}</option>`).join('');
-  if (cur !== '') sel.value = cur;
-}
-function onQuarterChange() {
-  const idx = document.getElementById('quarterSelect').value;
-  if (idx === '') return;
-  const q = quarters[parseInt(idx, 10)];
-  if (q && q.from && q.to) {
-    document.getElementById('report1From').value = q.from;
-    document.getElementById('report1To').value = q.to;
-    updateReport1Badge();
-    if (lastReport1) runReport1();
-  }
-}
-function onReport1DateChange() {
-  document.getElementById('quarterSelect').value = '';
-  updateReport1Badge();
-}
-function updateReport1Badge() {
-  const from = document.getElementById('report1From').value;
-  const to = document.getElementById('report1To').value;
-  const badge = document.getElementById('report1EduBadge');
-  if (!from || !to || from > to) { badge.textContent = '📚 —'; return; }
-  badge.textContent = `📚 ${getEducationDays(from, to).length} уч. дн.`;
-}
-function updateReport2Badge() {
-  const mStr = document.getElementById('report2Month').value;
-  const badge = document.getElementById('report2EduBadge');
-  if (!mStr) { badge.textContent = '📚 —'; return; }
-  const [y, m] = mStr.split('-').map(Number);
-  const lastD = new Date(y, m, 0).getDate();
-  const from = `${y}-${String(m).padStart(2,'0')}-01`;
-  const to = `${y}-${String(m).padStart(2,'0')}-${String(lastD).padStart(2,'0')}`;
-  badge.textContent = `📚 ${getEducationDays(from, to).length} уч. дн.`;
-}
-function initReportDates() {
-  const f = document.getElementById('report1From'), t = document.getElementById('report1To'), m = document.getElementById('report2Month');
-  if (!f.value) {
-    const today = todayStr();
-    let curQ = quarters.find(q => today >= q.from && today <= q.to) || quarters[0];
-    if (curQ) { f.value = curQ.from; t.value = curQ.to; }
-  }
-  if (!m.value) m.value = todayStr().slice(0, 7);
-  updateReport1Badge();
-  updateReport2Badge();
-}
-function switchReportPane(name) {
-  document.querySelectorAll('.report-tab').forEach(b => b.classList.toggle('active', b.dataset.report === name));
-  document.querySelectorAll('.report-pane').forEach(p => p.classList.toggle('active', p.id === 'reportPane-' + name));
-}
+async function saveClassName() { className = document.getElementById('classNameInput').value.trim(); await sb.from('classes').update({ name: className }).eq('id', currentClassId); updateHeader(); toast('Сохранено'); }
+async function saveQuarters() { quarters = quarters.map((q, i) => ({ ...q, from: document.getElementById('qFrom'+i).value, to: document.getElementById('qTo'+i).value })); await saveSettings(); refreshQuarterSelect(); toast('Сохранено'); }
+async function saveSchedule() { for (let d = 1; d <= 5; d++) schedule[d] = Math.max(0, parseInt(document.getElementById('sched'+d).value) || 0); schedule[0] = 0; schedule[6] = 0; await saveSettings(); toast('Сохранено'); }
+async function saveExcludedDates() { excludedDates = document.getElementById('excludedDatesEditor').value.split('\n').map(s=>s.trim()).filter(s=>/^\d{4}-\d{2}-\d{2}$/.test(s)).sort(); document.getElementById('excludedDatesEditor').value = excludedDates.join('\n'); await saveSettings(); toast('Сохранено'); }
+async function fillBelarusHolidays() { const year = new Date().getFullYear(); const years = [year, year + 1]; const added = new Set(excludedDates); years.forEach(y => { added.add(`${y}-01-01`); added.add(`${y}-01-07`); added.add(`${y}-03-08`); added.add(`${y}-05-01`); added.add(`${y}-05-09`); added.add(`${y}-07-03`); added.add(`${y}-11-07`); added.add(`${y}-12-25`); }); excludedDates = [...added].sort(); document.getElementById('excludedDatesEditor').value = excludedDates.join('\n'); await saveSettings(); toast('Праздники добавлены'); }
+async function addSpecialDay() { const date = document.getElementById('spDate').value; const lessons = Math.max(1, Math.min(15, parseInt(document.getElementById('spLessons').value, 10) || 1)); if (!date) { alert('Выберите дату'); return; } if (specialDays.find(s => s.date === date)) { if (!confirm('Такая дата уже есть. Заменить?')) return; specialDays = specialDays.filter(s => s.date !== date); } specialDays.push({ date, lessons }); specialDays.sort((a, b) => a.date.localeCompare(b.date)); excludedDates = excludedDates.filter(d => d !== date); document.getElementById('excludedDatesEditor').value = excludedDates.join('\n'); document.getElementById('spDate').value = ''; await saveSettings(); renderSpecialDaysList(); toast('Добавлен'); }
+async function removeSpecialDay(date) { if (!confirm('Удалить?')) return; specialDays = specialDays.filter(s => s.date !== date); await saveSettings(); renderSpecialDaysList(); toast('Удалено'); }
+function renderSpecialDaysList() { const el = document.getElementById('specialDaysList'); if (!specialDays.length) { el.innerHTML = '<div class="special-empty">Нет дней</div>'; return; } const dowNames = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб']; el.innerHTML = specialDays.map(s => `<div class="special-item"><span class="special-item-date">${formatDateRu(s.date)}</span><span class="special-item-dow">(${dowNames[dowOf(s.date)]})</span><span class="special-item-lessons">${s.lessons} ур.</span><button class="special-item-del" onclick="removeSpecialDay('${s.date}')">✕</button></div>`).join(''); }
+async function saveSettings() { if (!currentClassId) return; try { await sb.from('class_settings').upsert({ class_id: currentClassId, schedule, quarters, excluded_dates: excludedDates, special_days: specialDays }, { onConflict: 'class_id' }); } catch (e) {} }
+function refreshQuarterSelect() { const sel = document.getElementById('quarterSelect'); if (!sel) return; const cur = sel.value; sel.innerHTML = '<option value="">Вручную</option>' + quarters.map((q, i) => `<option value="${i}">${q.name}</option>`).join(''); if (cur !== '') sel.value = cur; }
+function onQuarterChange() { const idx = document.getElementById('quarterSelect').value; if (idx === '') return; const q = quarters[parseInt(idx, 10)]; if (q && q.from && q.to) { document.getElementById('report1From').value = q.from; document.getElementById('report1To').value = q.to; updateReport1Badge(); if (lastReport1) runReport1(); } }
+function onReport1DateChange() { document.getElementById('quarterSelect').value = ''; updateReport1Badge(); }
+function updateReport1Badge() { const from = document.getElementById('report1From').value; const to = document.getElementById('report1To').value; const badge = document.getElementById('report1EduBadge'); if (!from || !to || from > to) { badge.textContent = '📚 —'; return; } badge.textContent = `📚 ${getEducationDays(from, to).length} уч. дн.`; }
+function updateReport2Badge() { const mStr = document.getElementById('report2Month').value; const badge = document.getElementById('report2EduBadge'); if (!mStr) { badge.textContent = '📚 —'; return; } const [y, m] = mStr.split('-').map(Number); const lastD = new Date(y, m, 0).getDate(); const from = `${y}-${String(m).padStart(2,'0')}-01`; const to = `${y}-${String(m).padStart(2,'0')}-${String(lastD).padStart(2,'0')}`; badge.textContent = `📚 ${getEducationDays(from, to).length} уч. дн.`; }
+function initReportDates() { const f = document.getElementById('report1From'), t = document.getElementById('report1To'), m = document.getElementById('report2Month'); if (!f.value) { const today = todayStr(); let curQ = quarters.find(q => today >= q.from && today <= q.to) || quarters[0]; if (curQ) { f.value = curQ.from; t.value = curQ.to; } } if (!m.value) m.value = todayStr().slice(0, 7); updateReport1Badge(); updateReport2Badge(); }
+function switchReportPane(name) { document.querySelectorAll('.report-tab').forEach(b => b.classList.toggle('active', b.dataset.report === name)); document.querySelectorAll('.report-pane').forEach(p => p.classList.toggle('active', p.id === 'reportPane-' + name)); }
+function exportCSV() { const day = getDayData(); let csv = 'Дата;№;ФИО;Статус;Причина;Комментарий\n'; students.forEach((name, i) => { const a = day[i]; const st = a ? 'Отсутствует' : 'Присутствует'; const rs = a ? REASONS[a.reason]?.label : ''; const cm = a && a.comment ? a.comment : ''; const safeName = String(name).replace(/"/g, '""'); const safeCm = String(cm).replace(/"/g, '""'); csv += `${dateInput.value};${i+1};"${safeName}";${st};${rs};"${safeCm}"\n`; }); const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `день_${dateInput.value}.csv`; a.click(); }
+function switchTab(name) { document.querySelectorAll('.side-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name)); document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + name)); if (name === 'settings') loadSettingsForm(); if (name === 'reports') initReportDates(); }
+function toast(msg) { const el = document.getElementById('toast'); el.textContent = msg; el.classList.add('show'); setTimeout(() => el.classList.remove('show'), 2600); }
 
-// ==================== ПРОЧЕЕ ====================
-function exportCSV() {
-  const day = getDayData();
-  let csv = 'Дата;№;ФИО;Статус;Причина;Комментарий\n';
-  students.forEach((name, i) => {
-    const a = day[i]; const st = a ? 'Отсутствует' : 'Присутствует';
-    const rs = a ? REASONS[a.reason]?.label : '';
-    const cm = a && a.comment ? a.comment : '';
-    const safeName = String(name).replace(/"/g, '""');
-    const safeCm = String(cm).replace(/"/g, '""');
-    csv += `${dateInput.value};${i+1};"${safeName}";${st};${rs};"${safeCm}"\n`;
-  });
-  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `день_${dateInput.value}.csv`; a.click();
-}
-function switchTab(name) {
-  document.querySelectorAll('.side-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
-  document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + name));
-  if (name === 'settings') loadSettingsForm();
-  if (name === 'reports') initReportDates();
-}
-function toast(msg) {
-  const el = document.getElementById('toast');
-  el.textContent = msg; el.classList.add('show');
-  setTimeout(() => el.classList.remove('show'), 2600);
-}
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); undoLast(); }
+  if (e.key >= '1' && e.key <= '9') {
+    const idx = e.key - 1;
+    const reason = REASON_KEYS[idx];
+    if (reason && students.length > idx) { setReason(idx, reason); render(); toast(`Отмечено: ${students[idx]} - ${REASONS[reason].label}`); }
+  }
+});
 
-// ==================== INIT ====================
 async function init() {
   loadPrefs();
   dateInput.value = todayStr();
   document.querySelectorAll('.side-btn').forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
-  document.getElementById('intervalBackdrop').addEventListener('click', e => {
-    if (e.target.id === 'intervalBackdrop') closeIntervalModal();
-  });
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeIntervalModal(); });
-
+  document.getElementById('intervalBackdrop').addEventListener('click', e => { if (e.target.id === 'intervalBackdrop') closeIntervalModal(); });
+  
   const { data: { session } } = await sb.auth.getSession();
   if (session && session.user) {
     await afterLogin(session.user);
   } else {
     document.getElementById('loginScreen').style.display = 'flex';
     document.querySelector('.container').style.display = 'none';
-    setTimeout(() => document.getElementById('loginEmail').focus(), 100);
   }
 }
 init();
