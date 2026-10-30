@@ -543,8 +543,26 @@ details.students-list ul { margin: 8px 0 0 20px; font-size: 14px; }
   .modal { padding: 22px 18px; border-radius: 18px; }
   .toast { bottom: 14px; }
 
-  .user-info { display: none; }
-  .btn-logout { flex: 1; }
+  /* Делаем профиль вертикальным на узких экранах */
+  .side-user {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    padding: 12px !important;
+  }
+  .user-email {
+    text-align: center !important;
+    font-size: 12px !important;
+  }
+  .user-badge {
+    justify-content: center !important;
+  }
+  .user-actions {
+    width: 100%;
+    justify-content: center;
+  }
+  .btn-logout {
+    flex: 1;
+  }
 }
 @media (max-width: 420px) {
   .header .header-art { width: min(100%, 220px) !important; height: 152px !important; }
