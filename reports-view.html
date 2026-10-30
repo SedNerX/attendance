@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="ru">
+	<head>
+		<meta charset="UTF-8">
+			<meta name="viewport" content="width=device-width, initial-scale=1.0">
+				<title>Отчёты по классам (просмотр)</title>
+				<link rel="icon" href="data:image/svg+xml,"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'>
+					<text y='.9em' font-size='90'>📊</text>
+				</svg>">
+				<script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+				<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+				<link rel="stylesheet" href="style.css">
+					<style>
+						.viewer-select { padding: 10px 14px; border-radius: 11px; border: 1.5px solid var(--border); background: var(--input-bg); color: var(--text); font-size: 14px; font-weight: 600; width: 100%; max-width: 300px; }
+						.viewer-select:focus { outline: none; border-color: var(--primary); }
+
+						/* Стили для блока пользователя в сайдбаре */
+						.side-user {
+						background: var(--card);
+						border-radius: 20px;
+						padding: 16px;
+						border: 1px solid var(--border);
+						box-shadow: 0 14px 40px rgba(0,0,0,.12);
+						backdrop-filter: blur(16px);
+						display: flex;
+						flex-direction: column;
+						gap: 12px;
+						}
+						.user-info {
+						display: flex;
+						flex-direction: column;
+						gap: 4px;
+						}
+						.user-email {
+						font-size: 13px;
+						font-weight: 600;
+						color: var(--text);
+						word-break: break-all;
+						}
+						.user-badge {
+						font-size: 10px;
+						color: var(--success);
+						font-weight: 700;
+						text-transform: uppercase;
+						letter-spacing: 0.5px;
+						display: flex;
+						align-items: center;
+						gap: 6px;
+						}
+						.user-badge::before {
+						content: '';
+						display: inline-block;
+						width: 6px;
+						height: 6px;
+						border-radius: 50%;
+						background: var(--success);
+						box-shadow: 0 0 8px var(--success);
+						}
+						.btn-logout {
+						background: rgba(248,113,113,0.1);
+						color: var(--danger);
+						border: 1px solid rgba(248,113,113,0.3);
+						width: 100%;
+						justify-content: center;
+						padding: 8px;
+						font-size: 13px;
+						border-radius: 10px;
+						}
+						.btn-logout:hover {
+						background: rgba(248,113,113,0.2);
+						transform: translateY(-1px);
+						}
+
+						/* Адаптивность для мобильных (когда сайдбар становится горизонтальным) */
+						@media (max-width: 900px) {
+						.side-user {
+						flex-direction: row;
+						align-items: center;
+						justify-content: space-between;
+						padding: 10px 16px;
+						border-radius: 16px;
+						gap: 10px;
+						}
+						.user-email { font-size: 11px; }
+						.btn-logout { width: auto; padding: 6px 14px; min-height: 32px; }
+						}
+						@media (max-width: 640px) {
+						.side-user { flex-direction: column; align-items: stretch; gap: 8px; padding: 12px; }
+						.user-email { text-align: center; }
+						.user-badge { justify-content: center; }
+						}
+					</style>
+				</head>
+	<body>
+
+		<!-- ЭКРАН ВХОДА -->
+		<div class="login-screen" id="loginScreen">
+			<div class="login-card">
+				<h1>Просмотр отчётов</h1>
+				<p>Вход только для чтения данных</p>
+				<input type="email" id="loginEmail" placeholder="Email" autocomplete="username">
+					<input type="password" id="loginPass" placeholder="Пароль" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+						<button id="loginBtn" onclick="doLogin()">Войти</button>
+						<div class="login-err" id="loginErr"></div>
+					</div>
+		</div>
+
+		<!-- ОСНОВНОЙ КОНТЕНТ -->
+		<div class="container" id="appContainer" style="display:none">
+
+			<!-- ШАПКА С ЭМБЛЕМОЙ -->
+			<div class="header">
+				<div class="school-badge">
+					<div class="school-emblem">
+						<span>🎓</span>
+					</div>
+					<div class="school-name">
+						ГУО «Средняя школа №16 г. Бреста<br>имени Героя Советского Союза А. М. Карасева»</div>
+				</div>
+				<div class="header-art" aria-hidden="true">
+					<div class="emblem-stage">
+						<img class="school-crest" src="school_emblem_assets/school-emblem.webp" alt="Эмблема школы">
+							<img class="crest-bird crest-bird-one" src="school_emblem_assets/bird-upper.webp" alt="">
+								<img class="crest-bird crest-bird-two" src="school_emblem_assets/bird-lower.webp" alt="">
+      </div>
+				</div>
+			</div>
+
+			<div class="layout">
+				<!-- ЛЕВОЕ МЕНЮ (САЙДБАР) -->
+				<aside class="sidebar">
+					<div class="side-brand">
+						<div class="side-brand-icon">👁</div>
+						<div class="side-brand-text">
+							<div class="side-brand-title">Отчёты</div>
+							<div class="side-brand-class">Режим просмотра</div>
+						</div>
+					</div>
+
+					<nav class="side-menu">
+						<div class="side-header">
+							<span class="side-header-icon">◆</span>
+							<span>Навигация</span>
+						</div>
+						<button class="side-btn active" data-report="1" onclick="switchReportPane('1')">
+							<span class="side-icon-wrap">
+								<span class="side-icon">📑</span>
+							</span>
+							<span class="side-body">
+								<span class="side-label">Отчёт №1</span>
+								<span class="side-sub">Четверть</span>
+							</span>
+						</button>
+						<button class="side-btn" data-report="2" onclick="switchReportPane('2')">
+							<span class="side-icon-wrap">
+								<span class="side-icon">📊</span>
+							</span>
+							<span class="side-body">
+								<span class="side-label">Отчёт №2</span>
+								<span class="side-sub">Месяц</span>
+							</span>
+						</button>
+						<button class="side-btn" data-report="year" onclick="switchReportPane('year')">
+							<span class="side-icon-wrap">
+								<span class="side-icon">📅</span>
+							</span>
+							<span class="side-body">
+								<span class="side-label">Сводка</span>
+								<span class="side-sub">За год</span>
+							</span>
+						</button>
+					</nav>
+
+					<!-- БЛОК ПОЛЬЗОВАТЕЛЯ -->
+					<div class="side-user">
+						<div class="user-info">
+							<div class="user-email" id="userEmail">—</div>
+							<div class="user-badge">Доступ разрешён</div>
+						</div>
+						<button class="btn-logout" onclick="doLogout()">Выйти</button>
+					</div>
+				</aside>
+
+				<!-- ПРАВАЯ ЧАСТЬ (КОНТЕНТ) -->
+				<div class="main">
+
+					<!-- ВЫБОР КЛАССА -->
+					<div class="card" style="padding: 16px 20px; margin-bottom: 20px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+						<label style="font-weight:600; font-size: 15px;">🏫 Выберите класс:</label>
+						<select id="classSelect" class="viewer-select" onchange="onClassChange()"></select>
+					</div>
+
+					<!-- ОТЧЁТ 1 -->
+					<div id="reportPane-1" class="report-pane active">
+						<div class="report-controls">
+							<label>📑 Период:</label>
+							<select id="quarterSelect" class="quarter-select" onchange="onQuarterChange()"></select>
+							<input type="date" id="report1From" onchange="onReport1DateChange()">
+								<span style="color:var(--muted)">—</span>
+								<input type="date" id="report1To" onchange="onReport1DateChange()">
+									<span id="report1EduBadge" class="edu-days-badge">📚 —</span>
+									<button class="btn-primary" onclick="runReport1()">Сформировать</button>
+									<button class="btn-secondary" onclick="exportExcel(1)">📊 Скачать Excel</button>
+								</div>
+						<div id="report1Output">
+							<div class="report-block">
+								<div class="empty-state">
+									<span class="emoji">📑</span>Нажмите «Сформировать», чтобы построить отчёт
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<!-- ОТЧЁТ 2 -->
+					<div id="reportPane-2" class="report-pane">
+						<div class="report-controls">
+							<label>📊 Месяц:</label>
+							<input type="month" id="report2Month" onchange="updateReport2Badge()">
+								<span id="report2EduBadge" class="edu-days-badge">📚 —</span>
+								<button class="btn-primary" onclick="runReport2()">Сформировать</button>
+								<button class="btn-secondary" onclick="exportExcel(2)">📊 Скачать Excel</button>
+							</div>
+						<div id="report2Output">
+							<div class="report-block">
+								<div class="empty-state">
+									<span class="emoji">📊</span>Нажмите «Сформировать», чтобы построить отчёт
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<!-- СВОДКА -->
+					<div id="reportPane-year" class="report-pane">
+						<div class="report-controls">
+							<label>📅 По всем четвертям</label>
+							<span style="color:var(--muted); font-size:13px;">Сводка по всем четвертям текущего учебного года</span>
+							<button class="btn-primary" onclick="runYearSummary()">Сформировать</button>
+						</div>
+						<div id="yearOutput">
+							<div class="report-block">
+								<div class="empty-state">
+									<span class="emoji">📅</span>Нажмите «Сформировать», чтобы построить сводку
+								</div>
+							</div>
+						</div>
+					</div>
+
+				</div>
+			</div>
+		</div>
+
+		<div class="toast" id="toast"></div>
+
+		<script src="reports-view.js"></script>
+	</body>
+</html>
