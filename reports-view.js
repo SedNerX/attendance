@@ -92,6 +92,13 @@ async function afterLogin(user) {
   document.getElementById('appContainer').style.display = '';
   document.getElementById('userEmail').textContent = user.email;
   await loadClasses();
+  
+  // Принудительно применяем состояние вкладок при старте, чтобы скрыть/показать выбор класса
+  if (document.getElementById('reportPane-analytics').classList.contains('active')) {
+    switchReportPane('analytics');
+  } else {
+    switchReportPane('1'); // По умолчанию, если активна первая вкладка
+  }
 }
 
 async function loadClasses() {
@@ -526,6 +533,24 @@ function exportExcel(reportNum) {
 function switchReportPane(name) {
   document.querySelectorAll('.side-btn').forEach(b => b.classList.toggle('active', b.dataset.report === name));
   document.querySelectorAll('.report-pane').forEach(p => p.classList.toggle('active', p.id === 'reportPane-' + name));
+  
+  const body = document.body;
+  body.classList.remove('analytics-active', 'elementary-active', 'high-active', 'yearly-active');
+  
+  if (name === 'analytics') body.classList.add('analytics-active');
+  if (name === 'elementary') body.classList.add('elementary-active');
+  if (name === 'high') body.classList.add('high-active');
+  if (name === 'yearly') body.classList.add('yearly-active');
+
+  // Принудительно обновляем видимость панели выбора класса
+  const toolbar = document.querySelector('.ux-class-toolbar');
+  if (toolbar) {
+    if (['analytics', 'elementary', 'high', 'yearly'].includes(name)) {
+      toolbar.style.display = 'none';
+    } else {
+      toolbar.style.display = 'flex';
+    }
+  }
 }
 
 function toast(msg) {

@@ -507,11 +507,20 @@ async function undoLast() {
 
 function updateHeader() {
   const safeClass = (className || '').trim();
+  
+  // Обновляем старый элемент в сайдбаре (если он есть)
   const classEl = document.getElementById('sideClassName');
   if (classEl) classEl.textContent = safeClass ? `${safeClass} класс` : 'Класс не указан';
+  
+  // Обновляем новый чип в верхней панели
+  const uxChip = document.getElementById('uxClassIndicator');
+  if (uxChip) {
+    // Очищаем содержимое, но оставляем зеленую точку
+    uxChip.innerHTML = '<span class="ux-indicator-dot"></span>' + (safeClass ? `${safeClass} класс` : 'Класс не указан');
+  }
+
   document.title = safeClass ? `Посещаемость ${safeClass}` : 'Посещаемость';
 }
-
 function onDateChange() {
   expandedRows.clear();
   selectedStudents.clear();
@@ -1872,6 +1881,11 @@ function switchTab(name) {
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + name));
   if (name === 'settings') loadSettingsForm();
   if (name === 'reports') initReportDates();
+  
+  // Управляем классами на body для CSS
+  const body = document.body;
+  body.classList.remove('tab-attendance-active', 'tab-reports-active', 'tab-settings-active');
+  body.classList.add('tab-' + name + '-active');
 }
 
 function toast(msg) {
@@ -1942,5 +1956,6 @@ async function init() {
     document.querySelector('.container').style.display = 'none';
   }
 }
-
+// В функции init() после await loadAll() и render() добавь:
+switchTab('attendance');
 init();

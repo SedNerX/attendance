@@ -26,76 +26,59 @@
     }, 2200);
   }
 
+  var turboCleanup = null;
   function turboSnow() {
-    var canvas = document.getElementById('nySnow');
-    if (!canvas) {
-      showBadge('🎁 Секретный снегопад!');
-      return;
-    }
+    var canvas = document.getElementById('eeTurboSnow');
+    showBadge('🎁 Секретный снегопад!');
+    if (!canvas || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if (turboCleanup) turboCleanup();
     var ctx = canvas.getContext('2d');
     if (!ctx) return;
-    var dpr = Math.min(window.devicePixelRatio || 1, 2);
-    var w = window.innerWidth;
-    var h = window.innerHeight;
-    canvas.width = Math.floor(w * dpr);
-    canvas.height = Math.floor(h * dpr);
-    canvas.style.width = w + 'px';
-    canvas.style.height = h + 'px';
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-
-    var flakes = [];
-    var count = Math.min(400, Math.round(w / 4));
-    for (var i = 0; i < count; i++) {
-      flakes.push({
-        x: Math.random() * w,
-        y: Math.random() * h - h,
-        r: 2 + Math.random() * 5,
-        vy: 1.6 + Math.random() * 3.2,
-        vx: (Math.random() - 0.5) * 1.4,
-        phase: Math.random() * Math.PI * 2,
-        alpha: 0.7 + Math.random() * 0.3,
-        color: i % 9 === 0 ? 'gold' : (i % 9 === 1 ? 'cyan' : 'white')
-      });
+    var w, h, flakes, last, end, raf = 0;
+    function resize() {
+      w = window.innerWidth; h = window.innerHeight;
+      var ratio = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.width = Math.round(w * ratio); canvas.height = Math.round(h * ratio);
+      canvas.style.width = w + 'px'; canvas.style.height = h + 'px';
+      ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+      var count = Math.min(260, Math.round(w / 5));
+      flakes = Array.from({length:count},function(_,i){return {
+        x: Math.random()*w, y:Math.random()*h-h, r:1.5+Math.random()*3.2,
+        vy:1.4+Math.random()*2.5,vx:(Math.random()-.5)*1.2,
+        phase:Math.random()*Math.PI*2, alpha:.45+Math.random()*.45,
+        color:i%11===0?'gold':(i%11===1?'cyan':'white')};});
     }
-
-    var start = performance.now();
-    var DURATION = 15000;
-    var last = start;
-
+    function cleanup() {
+      cancelAnimationFrame(raf); raf=0;
+      window.removeEventListener('resize',resize);
+      document.removeEventListener('visibilitychange',onVisibility);
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      canvas.classList.remove('active'); turboCleanup=null;
+    }
+    function onVisibility() { if(document.hidden) cleanup(); }
     function frame(now) {
-      var dt = Math.min(48, now - last) / 16.667;
-      last = now;
-      var elapsed = now - start;
-      ctx.clearRect(0, 0, w, h);
-      var light = document.body.classList.contains('light-theme');
-      var whiteRgb = light ? '100,130,180' : '255,255,255';
-      for (var i = 0; i < flakes.length; i++) {
-        var f = flakes[i];
-        f.phase += 0.02 * dt;
-        f.x += (f.vx + Math.sin(f.phase) * 1.8) * dt;
-        f.y += f.vy * dt;
-        if (f.y > h + 8) { f.y = -8; f.x = Math.random() * w; }
-        if (f.x < -8) f.x = w + 8;
-        if (f.x > w + 8) f.x = -8;
-        var fill;
-        if (f.color === 'gold') fill = 'rgba(245, 215, 110, ' + f.alpha.toFixed(3) + ')';
-        else if (f.color === 'cyan') fill = 'rgba(120, 220, 255, ' + f.alpha.toFixed(3) + ')';
-        else fill = 'rgba(' + whiteRgb + ',' + f.alpha.toFixed(3) + ')';
+      if (now >= end || document.hidden) { cleanup(); return; }
+      var dt=Math.min(2.5,Math.max(.5,(now-last)/16.667));last=now;
+      ctx.clearRect(0,0,w,h);
+      var light=document.body.classList.contains('light-theme');
+      flakes.forEach(function(f){
+        f.phase+=.02*dt; f.x+=(f.vx+Math.sin(f.phase)*.65)*dt;f.y+=f.vy*dt;
+        if(f.y>h+6){f.y=-6;f.x=Math.random()*w;}
+        if(f.x<-6)f.x=w+6;if(f.x>w+6)f.x=-6;
         ctx.beginPath();
-        ctx.fillStyle = fill;
-        ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      if (elapsed < DURATION) {
-        turboRAF = requestAnimationFrame(frame);
-      } else {
-        ctx.clearRect(0, 0, w, h);
-        turboRAF = null;
-      }
+        ctx.fillStyle=f.color==='gold'?'rgba(246,204,107,'+f.alpha+')':
+          f.color==='cyan'?'rgba(101,220,245,'+f.alpha+')':
+          light?'rgba(55,110,160,'+f.alpha+')':'rgba(255,255,255,'+f.alpha+')';
+        ctx.arc(f.x,f.y,f.r,0,Math.PI*2);ctx.fill();
+      });
+      raf=requestAnimationFrame(frame);
     }
-    if (turboRAF) cancelAnimationFrame(turboRAF);
-    turboRAF = requestAnimationFrame(frame);
-    showBadge('🎁 Секретный снегопад!');
+    turboCleanup=cleanup;
+    resize();canvas.classList.add('active');
+    window.addEventListener('resize',resize,{passive:true});
+    document.addEventListener('visibilitychange',onVisibility);
+    last=performance.now();end=last+15000;
+    raf=requestAnimationFrame(frame);
   }
 
   function onKonami() {
@@ -104,7 +87,7 @@
   }
 
   document.addEventListener('keydown', function (e) {
-    if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT')) return;
+    if (e.target && (e.target.isContentEditable || e.target.closest('input, textarea, select, [contenteditable=\"true\"]'))) return;
     var key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
     konamiBuffer.push(key);
     if (konamiBuffer.length > konamiSeq.length) konamiBuffer.shift();
@@ -159,23 +142,26 @@
   }
 
   function attachDiscoWatcher() {
-    var target = document.getElementById('sideClassName');
-    if (!target) return;
-    target.style.cursor = 'pointer';
+    // The legacy sidebar class label stays secret-triggerable on desktop.
+    // The redesigned class chip offers the same five-tap interaction on phones.
+    var targets = [document.getElementById('sideClassName'), document.getElementById('uxClassIndicator')].filter(Boolean);
+    if (!targets.length) return;
     var clicks = [];
     var timer = null;
-    target.addEventListener('click', function () {
-      if (!inDiscoSeason()) return;
-      clicks.push(Date.now());
-      if (clicks.length > 5) clicks.shift();
-      if (clicks.length === 5 && (clicks[4] - clicks[0]) < 2000) {
-        clicks = [];
+    targets.forEach(function (target) {
+      target.addEventListener('click', function () {
+        if (!inDiscoSeason()) return;
+        clicks.push(Date.now());
+        if (clicks.length > 5) clicks.shift();
+        if (clicks.length === 5 && (clicks[4] - clicks[0]) < 2000) {
+          clicks = [];
+          clearTimeout(timer);
+          toggleDisco();
+          return;
+        }
         clearTimeout(timer);
-        toggleDisco();
-        return;
-      }
-      clearTimeout(timer);
-      timer = setTimeout(function () { clicks = []; }, 2200);
+        timer = setTimeout(function () { clicks = []; }, 2200);
+      });
     });
   }
 
