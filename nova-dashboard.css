@@ -5,6 +5,7 @@
  */
 @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
 
+/* --- 1. ПЕРЕМЕННЫЕ И БАЗОВЫЕ НАСТРОЙКИ --- */
 body.premium-app.nova-ui {
   --bg: #091b30;
   --card: rgba(17, 43, 65, .92);
@@ -40,6 +41,7 @@ body.premium-app.nova-ui {
   line-height: 1.55;
   letter-spacing: -.011em;
 }
+
 body.premium-app.nova-ui.light-theme {
   --bg: #e1f0f8;
   --card: rgba(255,255,255,.93);
@@ -70,6 +72,7 @@ body.premium-app.nova-ui.light-theme {
       radial-gradient(ellipse 56% 48% at 77% 100%,rgba(130,204,218,.14),transparent 75%),
       linear-gradient(135deg,#dff1f8 0%,#eaf6fa 62%,#d9eaf5 100%) !important;
 }
+
 body.premium-app.nova-ui:not(.light-theme) input[type="date"] { color-scheme: dark; }
 body.premium-app.nova-ui.light-theme input[type="date"] { color-scheme: light; }
 body.premium-app.nova-ui a { color: inherit; }
@@ -83,6 +86,7 @@ body.premium-app.nova-ui a:focus-visible,
 body.premium-app.nova-ui input:focus-visible,
 body.premium-app.nova-ui select:focus-visible,
 body.premium-app.nova-ui summary:focus-visible { outline: 3px solid #37cee0; outline-offset: 3px; }
+
 body.premium-app.nova-ui .container { width: 100%; max-width: 2200px; padding: 15px 18px 23px; margin: auto; position: relative; z-index: 1; }
 body.premium-app.nova-ui .layout { display: grid; grid-template-columns: 262px minmax(0,1fr); gap: 17px; align-items: start; }
 body.premium-app.nova-ui .main { min-width: 0; width: 100%; max-width: none; padding: 0; display: flex; flex-direction: column; gap: 15px; }
@@ -91,7 +95,7 @@ body.premium-app.nova-ui .ux-main-content { min-width: 0; min-height: calc(100dv
   box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 20px 60px rgba(3,17,33,.095); overflow: clip; }
 body.premium-app.nova-ui.light-theme .ux-main-content { background: radial-gradient(ellipse 48% 33% at 95% 0%,rgba(22,171,221,.15),transparent 88%),radial-gradient(ellipse 55% 43% at 0% 58%,rgba(89,200,203,.085),transparent 88%),rgba(234,248,253,.68); }
 
-/* Deep ocean navigation */
+/* --- 2. САЙДБАР --- */
 body.premium-app.nova-ui .sidebar { z-index: 60; position: sticky; top: 15px; width: 100%; height: calc(100dvh - 30px); max-height: none; display: flex; flex-direction: column; align-self: start;
   gap: 18px; overflow-y: auto; overflow-x: hidden; scrollbar-width: thin; scrollbar-color: rgba(161,210,238,.14) transparent; padding: 20px 13px 15px; border-radius: 26px; border: 1px solid rgba(176,235,252,.14);
   background: radial-gradient(ellipse 74% 35% at 3% 6%,rgba(18,170,201,.32),transparent 85%),linear-gradient(160deg,#0d465d 0%,#10324f 34%,#10253f 70%,#0d2540 100%);
@@ -102,11 +106,8 @@ body.premium-app.nova-ui .sidebar .side-brand,
 body.premium-app.nova-ui .sidebar .side-menu,
 body.premium-app.nova-ui .sidebar .side-user,
 body.premium-app.nova-ui .sidebar .side-tools { background: transparent; border: 0; box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none; }
-body.premium-app.nova-ui .sidebar .side-brand { padding: 5px 10px 23px; border-bottom: 1px solid rgba(206,237,247,.14); border-radius: 0; gap: 12px; min-width:0; }
-body.premium-app.nova-ui .sidebar .side-brand-icon { border-radius: 14px; width: 45px; height: 45px; background: linear-gradient(135deg,#72eeef,#169bba); color:#072d47; box-shadow:0 10px 28px rgba(3,190,205,.24); font-size: 0; }
-body.premium-app.nova-ui .sidebar .side-brand-icon svg { width:24px; height:24px; stroke-width:1.8; }
-body.premium-app.nova-ui .sidebar .side-brand-title { color:#f4fdff; font-size:14px; letter-spacing:.045em; font-weight:800; }
-body.premium-app.nova-ui .sidebar .side-brand-class { color:#a0c8d7; font-size:11px; font-weight:600; white-space:nowrap; text-overflow:ellipsis; }
+body.premium-app.nova-ui .sidebar .side-brand { padding: 0 !important; margin: 0 0 10px 0 !important; justify-content: flex-start !important; background: transparent !important; border-bottom: 1px solid rgba(206,237,247,.14) !important; border-radius: 0 !important; display: flex !important; flex-direction: column !important; align-items: center !important; height: auto !important; overflow: visible !important; }
+body.premium-app.nova-ui .side-brand-logo { width: 100% !important; max-width: none !important; height: auto !important; object-fit: contain !important; filter: drop-shadow(0 15px 30px rgba(0,0,0,.45)) !important; display: block !important; margin: 0 !important; }
 body.premium-app.nova-ui .sidebar .side-menu { padding: 5px 4px; border-radius: 0; display:flex; flex:0 0 auto; flex-direction:column; gap:5px; overflow:visible; position:relative; }
 body.premium-app.nova-ui .sidebar .side-menu:before { display:none; }
 body.premium-app.nova-ui .sidebar .side-header,
@@ -140,7 +141,7 @@ body.premium-app.nova-ui .sidebar .theme-btn{background:rgba(224,247,255,.07);bo
 body.premium-app.nova-ui .sidebar .theme-btn.active {background:rgba(79,213,230,.24);border-color:rgba(132,233,243,.4);color:#fff;}
 body.premium-app.nova-ui .sidebar .color-dot { width:22px;height:22px; }
 
-/* Toolbar */
+/* --- 3. ВЕРХНЯЯ ПАНЕЛЬ --- */
 body.premium-app.nova-ui .ux-topbar { flex:0 0 auto; min-height:70px; padding:10px clamp(16px,2.5vw,32px); display:flex;gap:16px;align-items:center;justify-content:space-between;
   background:linear-gradient(100deg,rgba(12,52,75,.97),rgba(10,42,67,.98) 47%,rgba(11,36,61,.98));border:1px solid rgba(128,219,240,.18);color:#d8eff8;box-shadow:0 12px 36px rgba(3,24,42,.17),inset 0 1px 0 rgba(255,255,255,.08);border-radius:21px; }
 body.premium-app.nova-ui .ux-crumbs {min-width:0;display:flex;align-items:center;gap:10px;color:#9fbdd2;font-size:10px;font-weight:800;letter-spacing:.17em;white-space:nowrap;}
@@ -153,13 +154,8 @@ body.premium-app.nova-ui .ux-topbar-separator{height:15px;width:1px;background:r
 body.premium-app.nova-ui .ux-online {display:flex;align-items:center;gap:8px;color:#b8d3df;font-size:10px;font-weight:600;}
 body.premium-app.nova-ui .ux-online>span {width:6px;height:6px;flex-basis:6px;margin:0;}
 body.premium-app.nova-ui .ux-topbar-actions { display:flex; align-items:center;gap:8px;min-width:0; }
-body.premium-app.nova-ui .ux-icon-button{height:39px;width:39px;min-width:39px;display:grid;place-items:center;border:1px solid rgba(183,229,248,.17); padding:0; border-radius:12px;background:rgba(173,231,244,.085);color:#dbf5ff;cursor:pointer;transition:transform .25s cubic-bezier(.2,.85,.3,1),background .2s,border-color .2s;box-shadow:none;}
-body.premium-app.nova-ui .ux-icon-button svg {
-  width: 19px;
-  height: 19px;
-  display: block;
-  margin: auto;
-}
+body.premium-app.nova-ui .ux-icon-button{height:39px;width:39px;min-width:39px;display:grid;place-items:center;padding:0;border:1px solid rgba(183,229,248,.17);border-radius:12px;background:rgba(173,231,244,.085);color:#dbf5ff;cursor:pointer;transition:transform .25s cubic-bezier(.2,.85,.3,1),background .2s,border-color .2s;box-shadow:none;}
+body.premium-app.nova-ui .ux-icon-button svg{width:19px;height:19px;display:block;margin:auto;}
 body.premium-app.nova-ui .ux-icon-button:hover{transform:translateY(-2px);background:rgba(79,216,233,.20);border-color:rgba(114,220,243,.40);}
 body.premium-app.nova-ui .ux-profile-chip{display:flex;align-items:center;gap:10px;margin-left:7px;padding:0 0 0 12px;border-left:1px solid rgba(201,239,251,.15);min-width:0;}
 body.premium-app.nova-ui .ux-avatar{height:40px;width:40px;flex:0 0 40px;display:grid;place-items:center;border-radius:13px;background:linear-gradient(145deg,#73e7ec,#3ab3de);color:#06415c;font-size:16px;font-weight:850;box-shadow:0 6px 21px rgba(10,186,213,.23);}
@@ -167,7 +163,7 @@ body.premium-app.nova-ui .ux-profile-copy{min-width:0;display:flex;flex-directio
 body.premium-app.nova-ui .ux-profile-copy strong{color:#f0fcff;font-size:10px;}
 body.premium-app.nova-ui .ux-profile-copy small{color:#a1c2d2;font-size:9px;text-overflow:ellipsis;overflow:hidden;white-space:nowrap;}
 
-/* Premium hero */
+/* --- 4. ХИРО-БЛОК --- */
 body.premium-app.nova-ui .ux-page-intro{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(290px,.75fr);gap:18px;align-items:stretch;margin-bottom:23px;}
 body.premium-app.nova-ui .workspace-heading.ux-welcome {display:flex;flex-direction:column;align-items:flex-start;gap:0;margin:0;min-width:0;padding:7px 0 4px;animation:novaRise .58s .04s both;}
 body.premium-app.nova-ui .workspace-kicker {color:var(--primary);font-size:10px;letter-spacing:.16em;font-weight:850;margin:0 0 9px;}
@@ -179,7 +175,7 @@ body.premium-app.nova-ui .ux-indicator-dot {width:7px;height:7px;border-radius:5
 body.premium-app.nova-ui .ux-hero-primary {border:1px solid rgba(1,159,174,.3);border-radius:12px;padding:10px 16px;min-height:40px;color:#fff;font-size:11px;font-weight:800;background:linear-gradient(120deg,#038aa6,#10b6bb);box-shadow:0 10px 25px rgba(9,156,174,.21),inset 0 1px 0 rgba(255,255,255,.24);cursor:pointer;transition:transform .23s,box-shadow .25s,filter .25s;}
 body.premium-app.nova-ui .ux-hero-primary:hover{transform:translateY(-2px);box-shadow:0 13px 28px rgba(9,156,174,.29);filter:brightness(1.04);}
 
-/* Reusable surfaces */
+/* --- 5. КАРТОЧКИ И ИНТЕРФЕЙС --- */
 body.premium-app.nova-ui .ux-surface,
 body.premium-app.nova-ui .card,
 body.premium-app.nova-ui .report-controls,
@@ -219,7 +215,7 @@ body.premium-app.nova-ui .modal-backdrop{backdrop-filter:blur(9px);-webkit-backd
 body.premium-app.nova-ui .toast{border-radius:14px;box-shadow:0 16px 40px rgba(2,24,42,.28);}
 body.premium-app.nova-ui .empty-state{color:var(--muted);}
 
-/* Teacher dashboard layout */
+/* --- 6. СЕТКА УЧИТЕЛЯ --- */
 body.premium-app.nova-ui .ux-overview-grid{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(320px,.9fr);gap:17px;margin-bottom:20px;align-items:stretch;}
 body.premium-app.nova-ui .ux-calendar-board {padding:23px 23px 15px;animation:novaRise .6s .10s both;}
 body.premium-app.nova-ui .ux-calendar-board .section-lead h2{font-size:22px;}
@@ -299,7 +295,7 @@ body.premium-app.nova-ui .ux-extra-actions .actions{margin:0;padding:0 12px 13px
 body.premium-app.nova-ui .ux-extra-actions .actions button{flex:1 1 170px;font-size:10px;min-width:0;padding:10px 8px;}
 body.premium-app.nova-ui .alert-banner.visible{margin-bottom:17px;border-radius:13px;}
 
-/* Reports & Analytics */
+/* --- 7. ОТЧЕТЫ И АНАЛИТИКА --- */
 body.premium-app.nova-ui .ux-section-header {margin:1px 0 22px;}
 body.premium-app.nova-ui .report-controls {padding:16px;gap:10px;margin:0 0 17px;}
 body.premium-app.nova-ui .report-block {padding:19px;margin:0 0 18px;overflow-x:auto;}
@@ -346,7 +342,7 @@ body.premium-app.nova-ui #tab-settings .ux-section-header{grid-column:1/-1;margi
 body.premium-app.nova-ui #tab-settings .settings-card:has(#quartersForm){grid-column:1/-1;}
 body.premium-app.nova-ui #tab-settings .settings-card textarea{width:100%;}
 
-/* Login */
+/* --- 8. ЛОГИН И АНИМАЦИИ --- */
 body.premium-app.nova-ui .login-screen{background:radial-gradient(ellipse 47% 42% at 15% 8%,rgba(14,201,211,.30),transparent 72%),radial-gradient(ellipse 44% 42% at 90% 95%,rgba(24,110,202,.28),transparent 75%),#082138;position:fixed;z-index:1000;}
 body.premium-app.nova-ui .login-screen:before{content:'';width:min(70vw,590px);height:min(70vw,590px);position:absolute;left:-170px;bottom:-270px;border:1px solid rgba(164,241,248,.12);border-radius:50%;box-shadow:0 0 0 62px rgba(163,235,248,.027),0 0 0 128px rgba(163,235,248,.021);pointer-events:none;}
 body.premium-app.nova-ui .login-card {width:min(430px,calc(100% - 32px));padding:35px 34px 32px;border:1px solid rgba(151,234,246,.26);border-radius:26px;background:linear-gradient(145deg,rgba(248,253,255,.98),rgba(230,248,252,.96));box-shadow:0 30px 100px rgba(2,19,36,.38),inset 0 1px 0 white;backdrop-filter:blur(25px);position:relative;overflow:hidden;animation:novaLogin .63s cubic-bezier(.18,.8,.25,1) both;color:#17364b;}
@@ -358,7 +354,6 @@ body.premium-app.nova-ui .login-card input::placeholder{color:#879db0;}
 body.premium-app.nova-ui .login-card button {width:100%;border:0;border-radius:12px;background:linear-gradient(110deg,#088fa9,#09b8b4);color:white;font-weight:800;min-height:46px;box-shadow:0 10px 26px rgba(6,154,179,.23);}
 body.premium-app.nova-ui .login-card .login-err{color:#c43d5a;font-size:11px;}
 
-/* Animations */
 @keyframes novaRise{from{opacity:0;transform:translate3d(0,12px,0)}to{opacity:1;transform:translate3d(0,0,0)}}
 @keyframes novaSideArrive{from{opacity:0;transform:translate3d(-13px,0,0)}to{opacity:1;transform:translate3d(0,0,0)}}
 @keyframes novaLogin{from{opacity:0;transform:translate3d(0,18px,0) scale(.98)}to{opacity:1;transform:translate3d(0,0,0) scale(1)}}
@@ -370,11 +365,46 @@ body.premium-app.nova-ui .ux-hero-primary:active,
 body.premium-app.nova-ui .btn-primary:active{transform:scale(.96);}
 body.premium-app.nova-ui .ux-main-content .tab-panel:focus{outline:none;}
 
-/* Эмблема в сайдбаре (Desktop) */
-body.premium-app.nova-ui .sidebar .side-brand { padding: 0 !important; margin: 0 0 10px 0 !important; justify-content: flex-start !important; background: transparent !important; border-bottom: 1px solid rgba(206,237,247,.14) !important; border-radius: 0 !important; display: flex !important; flex-direction: column !important; align-items: center !important; height: auto !important; overflow: visible !important; }
-body.premium-app.nova-ui .side-brand-logo { width: 100% !important; max-width: none !important; height: auto !important; object-fit: contain !important; filter: drop-shadow(0 15px 30px rgba(0,0,0,.45)) !important; display: block !important; margin: 0 !important; }
+/* --- 9. ЭМБЛЕМА В ШАПКЕ И КНОПКА "НАВЕРХ" --- */
+body.premium-app.nova-ui .scroll-to-top {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--nova-surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 300;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.1);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(15px);
+  transition: opacity 0.3s ease, transform 0.3s ease, visibility 0.3s, background 0.2s;
+}
+body.premium-app.nova-ui .scroll-to-top.visible { opacity: 1; visibility: visible; transform: translateY(0); }
+body.premium-app.nova-ui .scroll-to-top:hover { background: var(--card-hover); border-color: var(--primary); color: var(--primary); }
+body.premium-app.nova-ui .scroll-to-top svg { width: 26px; height: 26px; }
 
-/* Tablets (max 1370) */
+/* --- 10. СКРЫТИЕ ЭЛЕМЕНТОВ ПО ТАБАМ --- */
+body.premium-app.nova-ui:not(.tab-attendance-active) .ux-hero-primary[data-ux-action="markall"] {
+  display: none !important;
+}
+body.premium-app.viewer-app.analytics-active .ux-class-toolbar,
+body.premium-app.viewer-app.elementary-active .ux-class-toolbar,
+body.premium-app.viewer-app.high-active .ux-class-toolbar,
+body.premium-app.viewer-app.yearly-active .ux-class-toolbar {
+  display: none !important;
+}
+
+/* --- 11. АДАПТИВНОСТЬ (ПЛАНШЕТЫ И МОБИЛЬНЫЕ) --- */
 @media(max-width:1370px){
  body.premium-app.nova-ui .layout{grid-template-columns:232px minmax(0,1fr);gap:13px;}
  body.premium-app.nova-ui .ux-main-content{padding:25px 23px 37px;}
@@ -401,38 +431,15 @@ body.premium-app.nova-ui .side-brand-logo { width: 100% !important; max-width: n
  body.premium-app.nova-ui .ux-roster-toolbar{align-items:stretch;}
 }
 
-/* Mobile (max 820) */
 @media(max-width:820px){
   body.premium-app.nova-ui .container{padding:10px 10px 105px!important;}
   body.premium-app.nova-ui .layout{display:block;}
-  
-  /* Скрываем сайдбар, так как навигация переехала вниз */
   body.premium-app.nova-ui .sidebar{width:auto!important;height:auto;max-height:none;overflow:visible;position:static;display:block;padding:0;border:0;background:transparent;box-shadow:none;animation:none;margin:0 0 10px;}
   body.premium-app.nova-ui .sidebar:before{display:none;}
-  
-  /* Убиваем эмблему в сайдбаре на мобильных */
   body.premium-app.nova-ui .sidebar .side-brand { display: none !important; visibility: hidden !important; height: 0 !important; padding: 0 !important; margin: 0 !important; overflow: hidden !important; }
-
-  /* Стили для логотипа в верхней панели */
-  body.premium-app.nova-ui .topbar-logo {
-    display: block !important;
-    width: 70px !important; /* Уменьшили со 100px до 70px, чтобы было аккуратно */
-    height: 70px !important;
-    object-fit: contain;
-    margin-right: 10px !important; /* Отступ от текста */
-    flex-shrink: 0; /* Запрещаем сжимать логотип */
-  }
-
-  /* Убираем старую иконку ◈ на мобильных, чтобы не дублировалась */
+  body.premium-app.nova-ui .topbar-logo { display: block !important; width: 70px !important; height: 70px !important; object-fit: contain; margin-right: 10px !important; flex-shrink: 0; }
   body.premium-app.nova-ui .ux-crumb-mark { display: none !important; }
-
-  /* Немного сдвигаем хлебные крошки, чтобы логотип встал ровно */
-body.premium-app.nova-ui .ux-crumbs {
-    flex: 1 !important; /* Занимает всё свободное место */
-    gap: 8px !important;
-    padding-left: 0 !important;
-    white-space: normal !important; /* Разрешаем перенос, если не влезает */
-  }  
+  body.premium-app.nova-ui .ux-crumbs { flex: 1 !important; gap: 8px !important; padding-left: 0 !important; white-space: normal !important; }
   body.premium-app.nova-ui .sidebar .side-menu{position:fixed;top:auto;bottom:max(8px,env(safe-area-inset-bottom));left:10px;right:10px;width:auto!important;height:auto;min-height:65px;max-width:none;z-index:400;display:flex;flex-direction:row;justify-content:space-around;gap:4px;overflow-x:auto!important;overflow-y:hidden;padding:7px!important;margin:0;border-radius:19px!important;border:1px solid rgba(148,228,244,.23);background:linear-gradient(115deg,rgba(10,47,70,.96),rgba(13,44,69,.97));box-shadow:0 15px 48px rgba(4,36,61,.31),inset 0 1px 0 rgba(255,255,255,.13);backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);scrollbar-width:thin;}
   body.premium-app.nova-ui .sidebar .side-header,
   body.premium-app.nova-ui .sidebar .ux-nav-group-label{display:none;}
@@ -444,11 +451,8 @@ body.premium-app.nova-ui .ux-crumbs {
   body.premium-app.nova-ui .sidebar .side-sub{display:none;}
   body.premium-app.nova-ui .sidebar .ux-side-footer{display:none;}
   body.premium-app.nova-ui .main{gap:10px;}
-body.premium-app.nova-ui .ux-topbar {
-    padding: 5px 12px !important; /* Уменьшили отступы */
-    min-height: 75px !important;  /* Увеличили высоту под логотип */
-    gap: 10px !important;
-  }  body.premium-app.nova-ui .ux-main-content{min-height:0;padding:22px 18px 23px;border-radius:19px;}
+  body.premium-app.nova-ui .ux-topbar { padding: 5px 12px !important; min-height: 75px !important; gap: 10px !important; }
+  body.premium-app.nova-ui .ux-main-content{min-height:0;padding:22px 18px 23px;border-radius:19px;}
   body.premium-app.nova-ui .workspace-heading.ux-welcome{padding:0;}
   body.premium-app.nova-ui .ux-page-intro{gap:15px;}
   body.premium-app.nova-ui .ux-roster-board .table-wrap{overflow-x:auto;}
@@ -458,9 +462,41 @@ body.premium-app.nova-ui .ux-topbar {
   body.premium-app.nova-ui.viewer-app .sidebar .side-btn{min-width:66px!important;flex:1 0 74px!important;}
   body.premium-app.nova-ui .ux-class-toolbar .ux-toolbar-hint{flex:1 1 200px;}
   body.premium-app.nova-ui.newyear .ny-garland{display:none;}
+  
+  /* Фикс четвертей на мобильных */
+  .quarter-row {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+    align-items: stretch !important;
+    margin-bottom: 16px !important;
+  }
+  .quarter-row input[type="date"] {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+    margin: 0 !important;
+    font-size: 14px !important;
+  }
+
+  /* Фикс кнопок дат (Завтра/Вчера) */
+  .date-nav .btn-nav {
+    white-space: nowrap !important;
+    padding-left: 6px !important;
+    padding-right: 6px !important;
+    font-size: 10px !important;
+  }
+
+  /* Кнопка наверх на мобильных */
+  body.premium-app.nova-ui .scroll-to-top {
+    bottom: 95px; 
+    right: 16px;
+    width: 48px;
+    height: 48px;
+  }
 }
 
-/* Small Mobile (max 620) */
 @media(max-width:620px){
  body.premium-app.nova-ui .container{padding:7px 7px 94px!important;}
  body.premium-app.nova-ui .ux-topbar{gap:7px;padding:8px 11px;}
@@ -551,7 +587,6 @@ body.premium-app.nova-ui .ux-topbar {
  body.premium-app.nova-ui.viewer-app .sidebar .side-btn{min-width:70px!important;flex:1 0 70px!important;}
 }
 
-/* Smallest devices (max 370) */
 @media(max-width:370px){
  body.premium-app.nova-ui .ux-topbar{padding:8px 9px;}
  body.premium-app.nova-ui .ux-crumbs>span:nth-child(2),body.premium-app.nova-ui .ux-crumb-slash{display:none;}
@@ -568,7 +603,6 @@ body.premium-app.nova-ui .ux-topbar {
  body.premium-app.nova-ui .sidebar .side-btn .side-label{font-size:9px!important;}
 }
 
-/* Large Desktop (min 1800) */
 @media(min-width:1800px){
  body.premium-app.nova-ui .container{padding:22px 28px;}
  body.premium-app.nova-ui .layout{grid-template-columns:276px minmax(0,1fr);gap:22px;}
@@ -593,91 +627,6 @@ body.premium-app.nova-ui .ux-topbar {
  body.premium-app.nova-ui .report-block table{color:black!important;}
  body.premium-app.nova-ui .report-block table thead th{background:#eee!important;color:black!important;}
 }
-
-/* Эмблема в шапке для мобильных */
 @media (min-width: 821px) {
   body.premium-app.nova-ui .topbar-logo { display: none !important; }
-}
-/* Кнопка Наверх */
-body.premium-app.nova-ui .scroll-to-top {
-  position: fixed;
-  bottom: 24px;
-  right: 24px;
-  width: 46px;
-  height: 46px;
-  border-radius: 50%;
-  background: var(--nova-surface);
-  border: 1px solid var(--border);
-  color: var(--text);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  z-index: 300;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.1);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  opacity: 0;
-  visibility: hidden;
-  transform: translateY(15px);
-  transition: opacity 0.3s ease, transform 0.3s ease, visibility 0.3s, background 0.2s;
-}
-
-body.premium-app.nova-ui .scroll-to-top.visible {
-  opacity: 1;
-  visibility: visible;
-  transform: translateY(0);
-}
-
-body.premium-app.nova-ui .scroll-to-top:hover {
-  background: var(--card-hover);
-  border-color: var(--primary);
-  color: var(--primary);
-}
-
-body.premium-app.nova-ui .scroll-to-top svg {
-  width: 22px;
-  height: 22px;
-}
-
-/* На мобильных поднимаем кнопку выше, чтобы не перекрывать нижнее меню */
-@media (max-width: 820px) {
-  body.premium-app.nova-ui .scroll-to-top {
-    bottom: 95px; /* Отступ над нижней навигацией */
-    right: 16px;
-    width: 42px;
-    height: 42px;
-  }
-  .date-nav .btn-nav {
-    white-space: nowrap !important;
-    padding-left: 6px !important;
-    padding-right: 6px !important;
-    font-size: 10px !important; /* Чуть уменьшаем шрифт, чтобы всё влезло */
-  }
-}
-/* Скрываем кнопку "Все присутствуют", если мы не на вкладке "Посещаемость" */
-body.premium-app.nova-ui:not(.tab-attendance-active) .ux-hero-primary[data-ux-action="markall"] {
-  display: none !important;
-}
-
-/* Скрываем выбор класса на странице администрации в аналитике и сводках */
-body.premium-app.viewer-app.analytics-active .ux-class-toolbar,
-body.premium-app.viewer-app.elementary-active .ux-class-toolbar,
-body.premium-app.viewer-app.high-active .ux-class-toolbar,
-body.premium-app.viewer-app.yearly-active .ux-class-toolbar {
-  display: none !important;
-}
-@media (max-width: 820px) {
-  .quarter-row {
-    grid-template-columns: 1fr !important;
-    gap: 8px !important;
-  }
-  .quarter-row input[type="date"] {
-    width: 100% !important;
-    max-width: 100% !important;
-    min-width: 0 !important;
-    box-sizing: border-box !important;
-    padding: 10px 8px !important;
-    font-size: 13px !important;
-  }
 }
