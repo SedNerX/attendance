@@ -630,3 +630,24 @@ body.premium-app.viewer-app.yearly-active .ux-class-toolbar {
 @media (min-width: 821px) {
   body.premium-app.nova-ui .topbar-logo { display: none !important; }
 }
+@media (max-width: 820px) {
+  .quarter-row {
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow: hidden !important; /* Обрезаем всё, что вылезает */
+  }
+  
+  .quarter-row input[type="date"] {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+    -webkit-appearance: none !important; /* Убираем нативные стили iOS */
+    appearance: none !important;
+    padding: 12px 10px !important;
+    margin: 0 !important;
+  }
+}
