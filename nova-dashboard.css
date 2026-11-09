@@ -661,3 +661,18 @@ body.premium-app.nova-ui.viewer-app:has(#reportPane-yearly.active) .ux-class-too
 .ux-class-toolbar.is-hidden {
   display: none !important;
 }
+/* Универсальный фикс для всех выпадающих списков */
+body.premium-app.nova-ui select,
+body.premium-app.nova-ui .quarter-select,
+body.premium-app.nova-ui .viewer-select {
+  padding-right: 42px !important; /* Даем много места под стрелочку */
+  text-overflow: ellipsis !important; /* Если текст не влезает, ставим "..." */
+  white-space: nowrap !important; /* Запрещаем перенос */
+  overflow: hidden !important;
+  background-position: right 12px center !important; /* Стрелочка чуть левее края */
+}
+
+/* Чуть уменьшим шрифт в самих селектах, чтобы текст влезал */
+body.premium-app.nova-ui select {
+  font-size: 12px !important;
+}
