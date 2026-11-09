@@ -266,23 +266,28 @@ function buildReport1(from, to, eduDays) {
       anyMax: maxConsecutiveFull(idx, eduDays),
       medMax: maxConsecutiveFull(idx, eduDays, 'medical'),
       healthAdminMax: healthAdminMax,
-      parentsFamilyAny: hasFullReason(idx, 'parents_family', eduDays),
-      surveyAny: hasFullReason(idx, 'survey', eduDays),
-      sportAny: hasFullReason(idx, 'sport', eduDays),
-      culturalAny: hasFullReason(idx, 'cultural', eduDays),
-      ozdAny: hasFullReason(idx, 'ozdorovlenie', eduDays),
-      norespAny: hasFullReason(idx, 'norespect', eduDays),
-      otherAny: hasFullReason(idx, 'other', eduDays)
+      parentsMax: Math.max(
+        maxConsecutiveFull(idx, eduDays, 'parents_family'),
+        maxConsecutiveFull(idx, eduDays, 'parents_health')
+      ),
+      surveyMax: maxConsecutiveFull(idx, eduDays, 'survey'),
+      sportMax: maxConsecutiveFull(idx, eduDays, 'sport'),
+      culturalMax: maxConsecutiveFull(idx, eduDays, 'cultural'),
+      ozdMax: maxConsecutiveFull(idx, eduDays, 'ozdorovlenie'),
+      norespMax: maxConsecutiveFull(idx, eduDays, 'norespect'),
+      otherMax: maxConsecutiveFull(idx, eduDays, 'other')
     };
   });
   const f = pred => analysis.filter(pred).map(a => a.name);
+  
   const respSet = new Set([
-    ...f(a => a.parentsFamilyAny),
-    ...f(a => a.surveyAny),
-    ...f(a => a.sportAny),
-    ...f(a => a.culturalAny),
-    ...f(a => a.ozdAny)
+    ...f(a => a.parentsMax >= REPORT_CONSECUTIVE_DAYS),
+    ...f(a => a.surveyMax >= REPORT_CONSECUTIVE_DAYS),
+    ...f(a => a.sportMax >= REPORT_CONSECUTIVE_DAYS),
+    ...f(a => a.culturalMax >= REPORT_CONSECUTIVE_DAYS),
+    ...f(a => a.ozdMax >= REPORT_CONSECUTIVE_DAYS)
   ]);
+  
   return {
     from, to,
     total: currentClass.students.length,
@@ -290,8 +295,8 @@ function buildReport1(from, to, eduDays) {
     med4: f(a => a.medMax >= REPORT_CONSECUTIVE_DAYS),
     healthAdmin4: f(a => a.healthAdminMax >= REPORT_CONSECUTIVE_DAYS),
     resp: [...respSet],
-    noresp: f(a => a.norespAny),
-    other: f(a => a.otherAny)
+    noresp: f(a => a.norespMax >= REPORT_CONSECUTIVE_DAYS),
+    other: f(a => a.otherMax >= REPORT_CONSECUTIVE_DAYS)
   };
 }
 
