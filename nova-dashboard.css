@@ -658,3 +658,6 @@ body.premium-app.nova-ui.viewer-app:has(#reportPane-high.active) .ux-class-toolb
 body.premium-app.nova-ui.viewer-app:has(#reportPane-yearly.active) .ux-class-toolbar {
   display: none !important;
 }
+.ux-class-toolbar.is-hidden {
+  display: none !important;
+}
