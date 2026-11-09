@@ -539,21 +539,13 @@ function switchReportPane(name) {
   document.querySelectorAll('.side-btn').forEach(b => b.classList.toggle('active', b.dataset.report === name));
   document.querySelectorAll('.report-pane').forEach(p => p.classList.toggle('active', p.id === 'reportPane-' + name));
   
-  const body = document.body;
-  body.classList.remove('analytics-active', 'elementary-active', 'high-active', 'yearly-active');
-  
-  if (name === 'analytics') body.classList.add('analytics-active');
-  if (name === 'elementary') body.classList.add('elementary-active');
-  if (name === 'high') body.classList.add('high-active');
-  if (name === 'yearly') body.classList.add('yearly-active');
-
-  // Принудительно управляем плашкой класса
+  // Находим плашку с выбором класса
   const toolbar = document.querySelector('.ux-class-toolbar');
   if (toolbar) {
     if (['analytics', 'elementary', 'high', 'yearly'].includes(name)) {
-      toolbar.style.setProperty('display', 'none', 'important');
+      toolbar.classList.add('is-hidden');
     } else {
-      toolbar.style.setProperty('display', 'flex', 'important');
+      toolbar.classList.remove('is-hidden');
     }
   }
 }
