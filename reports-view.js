@@ -47,9 +47,17 @@ function getSpecialDay(dateStr) { return (currentClass.settings.special_days || 
 function getDayLessons(dateStr) {
   const sp = getSpecialDay(dateStr);
   if (sp) return sp.lessons;
+  
   const dow = dowOf(dateStr);
   if (dow === 0 || dow === 6) return 0;
   if ((currentClass.settings.excluded_dates || []).includes(dateStr)) return 0;
+  
+  const quarters = currentClass.settings.quarters || [];
+  const q = quarters.find(q => dateStr >= q.from && dateStr <= q.to);
+  if (q && q.schedule) {
+    return q.schedule[dow] || 0;
+  }
+  
   return (currentClass.settings.schedule || {})[dow] || 0;
 }
 function isEducationDay(dateStr) { return getDayLessons(dateStr) > 0; }
