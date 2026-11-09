@@ -62,11 +62,12 @@ const saveStatus = document.getElementById('saveStatus');
 function defaultQuarters() {
   const now = new Date();
   const y = now.getMonth() >= 8 ? now.getFullYear() : now.getFullYear() - 1;
+  const defaultSched = { 0:0, 1:7, 2:7, 3:7, 4:7, 5:7, 6:0 };
   return [
-    { name: '1 четверть', from: `${y}-09-01`, to: `${y}-10-30` },
-    { name: '2 четверть', from: `${y}-11-01`, to: `${y}-12-24` },
-    { name: '3 четверть', from: `${y+1}-01-08`, to: `${y+1}-03-23` },
-    { name: '4 четверть', from: `${y+1}-04-01`, to: `${y+1}-05-31` }
+    { name: '1 четверть', from: `${y}-09-01`, to: `${y}-10-30`, schedule: { ...defaultSched } },
+    { name: '2 четверть', from: `${y}-11-01`, to: `${y}-12-24`, schedule: { ...defaultSched } },
+    { name: '3 четверть', from: `${y+1}-01-08`, to: `${y+1}-03-23`, schedule: { ...defaultSched } },
+    { name: '4 четверть', from: `${y+1}-04-01`, to: `${y+1}-05-31`, schedule: { ...defaultSched } }
   ];
 }
 
@@ -111,9 +112,18 @@ function getSpecialDay(dateStr) {
 function getDayLessons(dateStr) {
   const sp = getSpecialDay(dateStr);
   if (sp) return sp.lessons;
+  
   const dow = dowOf(dateStr);
   if (dow === 0 || dow === 6) return 0;
   if (excludedDates.includes(dateStr)) return 0;
+  
+  // Ищем четверть, в которую попадает эта дата
+  const q = quarters.find(q => dateStr >= q.from && dateStr <= q.to);
+  if (q && q.schedule) {
+    return q.schedule[dow] || 0;
+  }
+  
+  // Если дата вне четвертей, используем глобальное расписание (запасной вариант)
   return schedule[dow] || 0;
 }
 
@@ -1666,14 +1676,25 @@ function exportExcel(reportNum) {
 
 function loadSettingsForm() {
   document.getElementById('classNameInput').value = className;
-  document.getElementById('quartersForm').innerHTML = quarters.map((q, i) => `<div class="quarter-row">
-    <label>${escapeHtml(q.name)}</label>
-    <input type="date" id="qFrom${i}" value="${q.from}">
-    <input type="date" id="qTo${i}" value="${q.to}">
-  </div>`).join('');
-  for (let d = 1; d <= 5; d++) {
-    document.getElementById('sched' + d).value = schedule[d] ?? 7;
-  }
+  document.getElementById('quartersForm').innerHTML = quarters.map((q, i) => {
+    const s = q.schedule || { 0:0, 1:7, 2:7, 3:7, 4:7, 5:7, 6:0 };
+    return `
+    <div class="quarter-settings-block" style="margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid var(--border);">
+      <div class="quarter-row">
+        <label>${escapeHtml(q.name)}</label>
+        <input type="date" id="qFrom${i}" value="${q.from}">
+        <input type="date" id="qTo${i}" value="${q.to}">
+      </div>
+      <div class="schedule-grid" style="margin-top: 10px;">
+        <div class="schedule-item"><label>Пн</label><input type="number" id="qSched${i}_1" min="0" max="15" value="${s[1] ?? 7}"></div>
+        <div class="schedule-item"><label>Вт</label><input type="number" id="qSched${i}_2" min="0" max="15" value="${s[2] ?? 7}"></div>
+        <div class="schedule-item"><label>Ср</label><input type="number" id="qSched${i}_3" min="0" max="15" value="${s[3] ?? 7}"></div>
+        <div class="schedule-item"><label>Чт</label><input type="number" id="qSched${i}_4" min="0" max="15" value="${s[4] ?? 7}"></div>
+        <div class="schedule-item"><label>Пт</label><input type="number" id="qSched${i}_5" min="0" max="15" value="${s[5] ?? 7}"></div>
+      </div>
+    </div>`;
+  }).join('');
+  
   document.getElementById('excludedDatesEditor').value = excludedDates.join('\n');
   renderSpecialDaysList();
 }
@@ -1691,11 +1712,18 @@ async function saveClassName() {
 }
 
 async function saveQuarters() {
-  quarters = quarters.map((q, i) => ({
-    ...q,
-    from: document.getElementById('qFrom' + i).value,
-    to: document.getElementById('qTo' + i).value
-  }));
+  quarters = quarters.map((q, i) => {
+    const newSched = { 0:0, 1:0, 2:0, 3:0, 4:0, 5:0, 6:0 };
+    for (let d = 1; d <= 5; d++) {
+      newSched[d] = Math.max(0, parseInt(document.getElementById(`qSched${i}_${d}`).value) || 0);
+    }
+    return {
+      ...q,
+      from: document.getElementById('qFrom' + i).value,
+      to: document.getElementById('qTo' + i).value,
+      schedule: newSched
+    };
+  });
   const ok = await saveSettings();
   if (!ok) return;
   refreshQuarterSelect();
