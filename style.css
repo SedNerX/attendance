@@ -562,6 +562,22 @@ details.students-list ul { margin: 8px 0 0 20px; font-size: 14px; }
   .form-row .form-group { min-width: 0; }
   .user-info { display: none; }
   .btn-logout { flex: 1; }
+  .quarter-row {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 10px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  
+  .quarter-row input[type="date"] {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+    padding: 10px !important;
+    margin: 0 !important;
+  }
 }
 @media (max-width: 420px) {
   .header .header-art { width: min(100%, 220px) !important; height: 152px !important; }
