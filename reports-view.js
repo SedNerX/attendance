@@ -547,12 +547,13 @@ function switchReportPane(name) {
   if (name === 'high') body.classList.add('high-active');
   if (name === 'yearly') body.classList.add('yearly-active');
 
+  // Принудительно управляем плашкой класса
   const toolbar = document.querySelector('.ux-class-toolbar');
   if (toolbar) {
     if (['analytics', 'elementary', 'high', 'yearly'].includes(name)) {
-      toolbar.style.display = 'none';
+      toolbar.style.setProperty('display', 'none', 'important');
     } else {
-      toolbar.style.display = 'flex';
+      toolbar.style.setProperty('display', 'flex', 'important');
     }
   }
 }
