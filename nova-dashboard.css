@@ -154,7 +154,12 @@ body.premium-app.nova-ui .ux-online {display:flex;align-items:center;gap:8px;col
 body.premium-app.nova-ui .ux-online>span {width:6px;height:6px;flex-basis:6px;margin:0;}
 body.premium-app.nova-ui .ux-topbar-actions { display:flex; align-items:center;gap:8px;min-width:0; }
 body.premium-app.nova-ui .ux-icon-button{height:39px;width:39px;min-width:39px;display:grid;place-items:center;border:1px solid rgba(183,229,248,.17); padding:0; border-radius:12px;background:rgba(173,231,244,.085);color:#dbf5ff;cursor:pointer;transition:transform .25s cubic-bezier(.2,.85,.3,1),background .2s,border-color .2s;box-shadow:none;}
-body.premium-app.nova-ui .ux-icon-button svg{width:19px;height:19px;}
+body.premium-app.nova-ui .ux-icon-button svg {
+  width: 19px;
+  height: 19px;
+  display: block;
+  margin: auto;
+}
 body.premium-app.nova-ui .ux-icon-button:hover{transform:translateY(-2px);background:rgba(79,216,233,.20);border-color:rgba(114,220,243,.40);}
 body.premium-app.nova-ui .ux-profile-chip{display:flex;align-items:center;gap:10px;margin-left:7px;padding:0 0 0 12px;border-left:1px solid rgba(201,239,251,.15);min-width:0;}
 body.premium-app.nova-ui .ux-avatar{height:40px;width:40px;flex:0 0 40px;display:grid;place-items:center;border-radius:13px;background:linear-gradient(145deg,#73e7ec,#3ab3de);color:#06415c;font-size:16px;font-weight:850;box-shadow:0 6px 21px rgba(10,186,213,.23);}
