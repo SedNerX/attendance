@@ -591,6 +591,23 @@ function renderMiniCalendar() {
     }
     miniCalEl.appendChild(el);
   }
+    // Прокручиваем календарь так, чтобы активный день был по центру
+  setTimeout(() => {
+    const activeDay = miniCalEl.querySelector('.mini-day.active');
+    if (activeDay) {
+      const containerWidth = miniCalEl.offsetWidth;
+      const activeDayLeft = activeDay.offsetLeft;
+      const activeDayWidth = activeDay.offsetWidth;
+      
+      // Вычисляем позицию для центрирования
+      const scrollTo = activeDayLeft - (containerWidth / 2) + (activeDayWidth / 2);
+      
+      miniCalEl.scrollTo({
+        left: scrollTo,
+        behavior: 'smooth' // Плавная прокрутка
+      });
+    }
+  }, 50); // Небольшая задержка, чтобы DOM успел отрисоваться
 }
 
 function render() {
