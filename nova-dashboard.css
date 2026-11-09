@@ -651,3 +651,10 @@ body.premium-app.viewer-app.yearly-active .ux-class-toolbar {
     margin: 0 !important;
   }
 }
+/* Жесткое скрытие плашки класса, когда открыта Аналитика или Сводки */
+body.premium-app.nova-ui.viewer-app:has(#reportPane-analytics.active) .ux-class-toolbar,
+body.premium-app.nova-ui.viewer-app:has(#reportPane-elementary.active) .ux-class-toolbar,
+body.premium-app.nova-ui.viewer-app:has(#reportPane-high.active) .ux-class-toolbar,
+body.premium-app.nova-ui.viewer-app:has(#reportPane-yearly.active) .ux-class-toolbar {
+  display: none !important;
+}
