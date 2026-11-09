@@ -547,7 +547,6 @@ function switchReportPane(name) {
   if (name === 'high') body.classList.add('high-active');
   if (name === 'yearly') body.classList.add('yearly-active');
 
-  // Принудительно обновляем видимость панели выбора класса
   const toolbar = document.querySelector('.ux-class-toolbar');
   if (toolbar) {
     if (['analytics', 'elementary', 'high', 'yearly'].includes(name)) {
