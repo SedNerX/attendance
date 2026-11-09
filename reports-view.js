@@ -548,6 +548,15 @@ function switchReportPane(name) {
       toolbar.classList.remove('is-hidden');
     }
   }
+  // Скрываем/показываем чип с названием класса
+  const indicator = document.querySelector('.ux-class-indicator');
+  if (indicator) {
+    if (['analytics', 'elementary', 'high', 'yearly'].includes(name)) {
+      indicator.style.setProperty('display', 'none', 'important');
+    } else {
+      indicator.style.setProperty('display', 'inline-flex', 'important');
+    }
+  }
 }
 
 function toast(msg) {
