@@ -644,14 +644,19 @@ function render() {
   const currentQ = quarters.find(q => today >= q.from && today <= q.to) || quarters[0] || null;
   const eduDaysThisQuarter = currentQ ? getEducationDays(currentQ.from, today) : [];
   const warnNames = [];
+  
+  // Ищем учеников с 5+ днями (суммарно) по причине "Заявление родителей (по здоровью)"
   students.forEach((name, i) => {
-    if (maxConsecutiveFull(i, eduDaysThisQuarter) >= REPORT_CONSECUTIVE_DAYS) warnNames.push(name);
+    if (countDaysWithReason(i, eduDaysThisQuarter, 'parents_health') >= 5) {
+      warnNames.push(name);
+    }
   });
+  
   const banner = document.getElementById('warningBanner');
   if (warnNames.length > 0) {
     banner.classList.add('visible');
     document.getElementById('warningText').textContent =
-      `У ${warnNames.length} учеников 3+ дня пропусков подряд: ${warnNames.join(', ')}`;
+      `У ${warnNames.length} учеников 5+ дней пропусков по заявлению (здоровье) за текущую четверть: ${warnNames.join(', ')}`;
   } else {
     banner.classList.remove('visible');
   }
@@ -688,7 +693,7 @@ function render() {
       `<option value="${val}"${val === curReason ? ' selected' : ''}>${r.emoji} ${r.label}</option>`
     ).join('');
 
-        let detailHtml = '';
+    let detailHtml = '';
     if (curReason) {
       if (expandedRows.has(i)) {
         let fieldsHtml = '';
@@ -1246,6 +1251,17 @@ function maxConsecutiveFull(idx, eduDays, reason = null) {
     }
   }
   return max;
+}
+
+function countDaysWithReason(idx, eduDays, reason) {
+  let count = 0;
+  for (const d of eduDays) {
+    const a = absences[d]?.[idx];
+    if (a && a.full && a.reason === reason) {
+      count++;
+    }
+  }
+  return count;
 }
 
 function hasFullReason(idx, reason, eduDays) {
