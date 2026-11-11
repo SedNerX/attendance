@@ -167,7 +167,14 @@ function setAccent(hex, rgbStr) {
 }
 
 function loadPrefs() {
-  const th = localStorage.getItem(LS_THEME) || 'dark';
+  let th = localStorage.getItem(LS_THEME) || 'light'; // По умолчанию светлая
+  
+  // Если сейчас зима, и пользователь не выбирал тему вручную — включаем тёмную
+  const isNewYearSeason = document.body.classList.contains('newyear');
+  if (isNewYearSeason && (!localStorage.getItem(LS_THEME) || localStorage.getItem(LS_THEME) === 'auto')) {
+    th = 'dark';
+  }
+  
   let ac = null;
   try {
     ac = JSON.parse(localStorage.getItem(LS_ACCENT) || 'null');
