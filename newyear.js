@@ -95,13 +95,31 @@
       button.title = enabled() ? 'Выключить зимнее оформление' : 'Включить зимнее оформление';
     });
   }
-  function apply(on) {
+    function apply(on) {
     document.body.classList.toggle('newyear',!!on);
-    if (on) { buildGarland(); startSnow(); }
+    if (on) {
+      // При включении зимы проверяем, какую тему выбрал пользователь
+      var savedTheme = null;
+      try { savedTheme = localStorage.getItem('attendance_theme_v1'); } catch(e) {}
+      
+      // Если тема "auto" или не выбрана, включаем тёмную (для лучшего вида видео)
+      if (!savedTheme || savedTheme === 'auto') {
+        document.body.classList.remove('light-theme');
+        // Обновляем кнопки в интерфейсе, если они есть
+        document.querySelectorAll('.theme-btn').forEach(function(btn, i) {
+          var labels = ['dark', 'light', 'auto'];
+          btn.classList.toggle('active', labels[i] === 'dark');
+        });
+      }
+      
+      buildGarland(); 
+      startSnow(); 
+    }
     else stopSnow();
     videoState(); syncControls();
     window.dispatchEvent(new CustomEvent('attendance:season-change',{detail:{enabled:!!on}}));
   }
+  
   window.setNewYearTheme = function (on) {
     apply(!!on);
     save(LS_NEWYEAR,on?'1':'0');
