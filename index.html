@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/><title>Учёт посещаемости класса</title>
+<link href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📋</text></svg>" rel="icon"/>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="style.css" rel="stylesheet"/>
+<link href="premium.css" rel="stylesheet"/>
+<link href="seasonal-glass.css" rel="stylesheet"/>
+<script src="nova-preferences.js"></script>
+<link href="nova-dashboard.css" rel="stylesheet"/>
+<meta content="#0a304c" name="theme-color"/>
+</head>
+<body class="premium-app teacher-app nova-ui">
+<canvas aria-hidden="true" class="ny-snow" id="nySnow"></canvas>
+<canvas aria-hidden="true" class="ee-turbo-snow" id="eeTurboSnow"></canvas>
+<video aria-hidden="true" class="ny-video-bg" loop="" muted="" playsinline="" preload="none">
+  <source src="school_emblem_assets/newyear-bg.webm" type="video/webm"/>
+  <source src="school_emblem_assets/newyear-bg.mp4" type="video/mp4"/>
+</video>
+<div class="login-screen" id="loginScreen">
+  <div class="login-card">
+    <h1>Вход</h1>
+    <p>Учёт посещаемости — для учителей</p>
+    <input autocomplete="username" id="loginEmail" placeholder="Email" type="email"/>
+    <input autocomplete="current-password" id="loginPass" onkeydown="if(event.key==='Enter')doLogin()" placeholder="Пароль" type="password"/>
+    <button id="loginBtn" onclick="doLogin()">Войти</button>
+    <div class="login-err" id="loginErr"></div>
+  </div>
+</div>
+<div class="print-header">
+  <div class="p-school">ГУО «Средняя школа №16 г. Бреста имени Героя Советского Союза А. М. Карасева»</div>
+  <div class="p-title" id="printTitle">Отчёт</div>
+  <div class="p-meta">
+    <span>Класс: <b id="printClass">—</b></span>
+    <span>Период: <b id="printPeriod">—</b></span>
+  </div>
+</div>
+<div class="container" style="display:none">
+  <div class="layout">
+    <aside aria-label="Навигация по приложению" class="sidebar">
+      <div aria-hidden="true" class="ny-garland"></div>
+      
+      <!-- ЭМБЛЕМА ШКОЛЫ -->
+      <div class="side-brand">
+        <img class="side-brand-logo" src="school_emblem_assets/school-emblem.webp" alt="Эмблема школы">
+      </div>
+      
+      <nav class="side-menu">
+        <button class="side-btn active" data-tab="attendance">
+          <span class="side-icon-wrap"><span class="side-icon">📋</span></span>
+          <span class="side-body"><span class="side-label">Посещаемость</span><span class="side-sub">Отметки за день</span></span>
+        </button>
+        <button class="side-btn" data-tab="reports">
+          <span class="side-icon-wrap"><span class="side-icon">📊</span></span>
+          <span class="side-body"><span class="side-label">Отчёты</span><span class="side-sub">Три отчёта</span></span>
+        </button>
+        <button class="side-btn" data-tab="settings">
+          <span class="side-icon-wrap"><span class="side-icon">⚙️</span></span>
+          <span class="side-body"><span class="side-label">Настройки</span><span class="side-sub">Класс, четверти</span></span>
+        </button>
+      </nav>
+      
+      <!-- БЛОК ПРОФИЛЯ УЧИТЕЛЯ -->
+      <div class="ux-side-footer">
+        <div class="side-user">
+          <div class="user-info">
+            <div class="user-email" id="userEmail">—</div>
+            <div class="user-badge">Учитель</div>
+          </div>
+          <div class="user-actions">
+            <button class="btn-icon" onclick="openPasswordModal()" title="Сменить пароль">🔑</button>
+            <button class="btn-logout" onclick="doLogout()" title="Выйти из аккаунта">Выйти</button>
+          </div>
+        </div>
+        <details class="mobile-preferences">
+          <summary>Настройки оформления</summary>
+          <div class="side-tools">
+            <div class="tools-title">Интерфейс</div>
+            <div class="theme-toggles">
+              <button class="theme-btn active" onclick="setTheme('dark')">🌙 Тёмная</button>
+              <button class="theme-btn" onclick="setTheme('light')">☀️ Светлая</button>
+              <button class="theme-btn" onclick="setTheme('auto')">💻 Авто</button>
+            </div>
+            <div class="tools-title">Акцент</div>
+            <div class="color-palette">
+              <div class="color-dot active" onclick="setAccent('#6d8bff', '109,139,255')" style="background:#6d8bff"></div>
+              <div class="color-dot" onclick="setAccent('#10b981', '16,185,129')" style="background:#10b981"></div>
+              <div class="color-dot" onclick="setAccent('#f59e0b', '245,158,11')" style="background:#f59e0b"></div>
+              <div class="color-dot" onclick="setAccent('#ec4899', '236,72,153')" style="background:#ec4899"></div>
+            </div>
+          </div>
+        </details>
+      </div>
+    </aside>
+    
+    <div class="main">
+      <header aria-label="Верхняя панель" class="ux-topbar">
+        <div aria-hidden="true" class="ny-garland ux-topbar-garland"></div>
+        <div class="ux-crumbs">
+          <img class="topbar-logo" src="school_emblem_assets/school-emblem.webp" alt="Эмблема">
+          <span class="ux-crumb-mark">◈</span>
+          <span>WORKSPACE</span>
+          <span class="ux-crumb-slash">/</span>
+          <strong>Журнал</strong>
+        </div>
+        <div class="ux-topbar-center">
+          <span class="ux-today-tag" id="uxDateToday">Учебное пространство</span>
+          <span class="ux-topbar-separator"></span>
+          <span class="ux-online"><span></span> Система готова</span>
+        </div>
+        <div class="ux-topbar-actions">
+          <button aria-label="Переключить светлую и тёмную тему" class="ux-icon-button ux-theme-switch" data-ux-action="theme" title="Сменить оформление" type="button">
+            <svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.8" viewbox="0 0 24 24">
+              <path d="M20.5 14.5A8.5 8.5 0 0 1 9.5 3.5 8.5 8.5 0 1 0 20.5 14.5Z"></path>
+            </svg>
+          </button>
+          <div class="ux-profile-chip">
+            <span class="ux-avatar">У</span>
+            <span class="ux-profile-copy"><strong>Учитель</strong><small id="uxProfileEmail">Личный кабинет</small></span>
+          </div>
+        </div>
+      </header>
+      
+      <div class="ux-main-content">
+        <div class="ux-page-intro">
+          <div class="workspace-heading ux-welcome">
+            <div>
+              <div class="workspace-kicker">ЦИФРОВАЯ ШКОЛА  /  РАБОЧЕЕ МЕСТО УЧИТЕЛЯ</div>
+              <h1>Хорошего учебного дня!</h1>
+              <p>Отмечайте посещаемость быстро. Всё важное — перед глазами.</p>
+            </div>
+            <div class="ux-hero-actions">
+              <span class="ux-class-indicator" id="uxClassIndicator"><span class="ux-indicator-dot"></span>Класс не выбран</span>
+              <button class="ux-hero-primary" data-ux-action="markall" type="button">✓ Все присутствуют</button>
+            </div>
+          </div>
+        </div>
+
+        <section class="tab-panel active" id="tab-attendance">
+          <div class="alert-banner" id="warningBanner">
+            ⚠️ <span id="warningText"></span>
+          </div>
+          
+          <div class="ux-overview-grid">
+            <div class="ux-surface ux-calendar-board">
+              <div class="section-lead">
+                <div>
+                  <span class="section-overline">01 / УЧЁТ</span>
+                  <h2>Отметки за день</h2>
+                  <p>Выберите дату и отметьте отсутствующих учеников</p>
+                </div>
+              </div>
+              <div class="date-controls">
+                <div class="date-nav">
+                  <button class="btn-nav" onclick="changeDate(-1)">← Вчера</button>
+                  <input id="date" onchange="onDateChange()" type="date"/>
+                  <button class="btn-nav" onclick="changeDate(1)">Завтра →</button>
+                  <button class="btn-nav" onclick="setToday()" style="color:var(--primary); border-color:var(--primary);">Сегодня</button>
+                </div>
+                <div style="display:flex; gap:8px; margin-left:auto; flex-wrap:wrap;">
+                  <button class="btn-secondary" onclick="copyYesterday()">📋 Скопировать вчера</button>
+                  <button class="btn-secondary" onclick="copyToWeek()">📅 На 5 дней</button>
+                </div>
+              </div>
+              <div class="mini-calendar" id="miniCalendar"></div>
+              <div class="ux-calendar-note"><span class="ux-tiny-dot"></span>21 день в одном взгляде <span>•</span> Выберите дату для отметок</div>
+            </div>
+            
+            <div class="ux-surface ux-summary-board">
+              <div class="ux-panel-heading">
+                <div>
+                  <span class="ux-overline">СЕГОДНЯ В КЛАССЕ</span>
+                  <h2>Посещаемость</h2>
+                  <p>Актуальные показатели выбранного дня</p>
+                </div>
+                <span class="ux-panel-icon">◈</span>
+              </div>
+              <div class="ux-ring-zone">
+                <div aria-label="Посещаемость: данные загружаются" class="ux-ring" role="img">
+                  <svg aria-hidden="true" viewbox="0 0 120 120">
+                    <circle class="ux-ring-track" cx="60" cy="60" r="49"></circle>
+                    <circle class="ux-ring-progress" cx="60" cy="60" r="49"></circle>
+                  </svg>
+                  <div class="ux-ring-value">
+                    <strong id="uxAttendancePct">—</strong>
+                    <span>присутствуют</span>
+                  </div>
+                </div>
+                <div class="ux-ring-copy">
+                  <span class="ux-ring-caption">Общая картина</span>
+                  <strong id="uxPresenceInfo">Данные обновляются</strong>
+                  <small>Показатели рассчитываются из журнала</small>
+                </div>
+              </div>
+              <div class="stats" id="stats">
+                <div class="stat"><div class="label">Всего</div><div class="value skeleton" style="width:40px; height:30px; background:var(--border); border-radius:4px;"></div></div>
+                <div class="stat"><div class="label">Присутствуют</div><div class="value skeleton" style="width:40px; height:30px; background:var(--border); border-radius:4px;"></div></div>
+                <div class="stat"><div class="label">Отсутствуют</div><div class="value skeleton" style="width:40px; height:30px; background:var(--border); border-radius:4px;"></div></div>
+              </div>
+              <div class="file-bar">
+                <div class="file-bar-left">
+                  <span class="status-dot connected" id="statusDot"></span>
+                  <span id="saveStatus" style="font-size:13px; color:var(--muted); font-weight:600;">Готово к работе</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="ux-surface ux-roster-board">
+            <div class="section-lead roster-lead">
+              <div>
+                <span class="section-overline">02 / СПИСОК</span>
+                <h2>Ученики</h2>
+                <p>Изменения сохраняются автоматически</p>
+              </div>
+            </div>
+            <div class="ux-roster-toolbar">
+              <div class="search-bar">
+                <input class="search-input" id="searchInput" oninput="onSearch()" placeholder="Поиск по ФИО..." type="text"/>
+              </div>
+              <div class="ux-roster-shortcuts">
+                <button class="btn-primary" onclick="openIntervalModal()">📅 Добавить интервал</button>
+                <button class="btn-secondary" onclick="undoLast()">↩️ Отменить (Ctrl+Z)</button>
+                <button class="btn-secondary" onclick="openEditList()">✏️ Редактировать список</button>
+              </div>
+            </div>
+            <div class="bulk-panel" id="bulkPanel">
+              <div class="bulk-info" id="bulkInfo">Выбрано: 0</div>
+              <div style="display:flex; gap:8px; margin-left:auto; flex-wrap:wrap;">
+                <select class="quarter-select" id="bulkReason">
+                  <option value="">-- Причина --</option>
+                </select>
+                <button class="btn-primary" onclick="applyBulkReason()">Применить</button>
+                <button class="btn-secondary" onclick="clearSelection()">Сбросить</button>
+              </div>
+            </div>
+            <div class="card">
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th style="width: 40px;"><input id="selectAll" onchange="toggleSelectAll(this)" type="checkbox"/></th>
+                      <th style="width: 40px;">№</th>
+                      <th>Ученик</th>
+                      <th style="width: 130px;">Статус</th>
+                      <th>Причина / Детали</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tbody"></tbody>
+                </table>
+              </div>
+            </div>
+            <details class="ux-extra-actions">
+              <summary><span>Дополнительные инструменты</span><span class="ux-chevron">⌄</span></summary>
+              <div class="actions">
+                <button class="btn-secondary" onclick="collapseAllRows()">📕 Свернуть все детали</button>
+                <button class="btn-secondary" onclick="exportCSV()">📊 Экспорт CSV (день)</button>
+                <button class="btn-secondary" onclick="exportFullClassExcel()">📂 Экспорт класса в Excel</button>
+                <button class="btn-secondary" onclick="printClassList()">🖨️ Печать списка</button>
+              </div>
+            </details>
+          </div>
+        </section>
+
+        <section class="tab-panel" id="tab-reports">
+          <div class="ux-section-header">
+            <span class="ux-overline">ОФИЦИАЛЬНЫЕ ФОРМЫ</span>
+            <h2>Отчёты по вашему классу</h2>
+            <p>Таблицы и расчёты сохранены в исходном формате.</p>
+          </div>
+          <div class="report-tabs">
+            <button class="report-tab active" data-report="1" onclick="switchReportPane('1')"><span class="tab-emoji">📑</span><span class="tab-label"><span class="tab-title">Отчёт №1</span><span class="tab-sub">Четверть</span></span></button>
+            <button class="report-tab" data-report="2" onclick="switchReportPane('2')"><span class="tab-emoji">📊</span><span class="tab-label"><span class="tab-title">Отчёт №2</span><span class="tab-sub">Месяц</span></span></button>
+            <button class="report-tab" data-report="year" onclick="switchReportPane('year')"><span class="tab-emoji">📅</span><span class="tab-label"><span class="tab-title">Сводка</span><span class="tab-sub">За год</span></span></button>
+          </div>
+          <div class="report-pane active" id="reportPane-1">
+            <div class="report-controls">
+              <label>📑 Период:</label>
+              <select class="quarter-select" id="quarterSelect" onchange="onQuarterChange()"></select>
+              <input id="report1From" onchange="onReport1DateChange()" type="date"/>
+              <span style="color:var(--muted)">—</span>
+              <input id="report1To" onchange="onReport1DateChange()" type="date"/>
+              <span class="edu-days-badge" id="report1EduBadge">📚 —</span>
+              <button class="btn-primary" onclick="runReport1()">Сформировать</button>
+            </div>
+            <div id="report1Output"><div class="report-block"><div class="empty-state"><span class="emoji">📑</span>Нажмите «Сформировать», чтобы построить отчёт</div></div></div>
+          </div>
+          <div class="report-pane" id="reportPane-2">
+            <div class="report-controls">
+              <label>📊 Месяц:</label>
+              <input id="report2Month" onchange="updateReport2Badge()" type="month"/>
+              <span class="edu-days-badge" id="report2EduBadge">📚 —</span>
+              <button class="btn-primary" onclick="runReport2()">Сформировать</button>
+            </div>
+            <div id="report2Output"><div class="report-block"><div class="empty-state"><span class="emoji">📊</span>Нажмите «Сформировать», чтобы построить отчёт</div></div></div>
+          </div>
+          <div class="report-pane" id="reportPane-year">
+            <div class="report-controls">
+              <label>📅 По всем четвертям</label>
+              <span style="color:var(--muted); font-size:13px;">Сводка по всем четвертям текущего учебного года</span>
+              <button class="btn-primary" onclick="runYearSummary()">Сформировать</button>
+            </div>
+            <div id="yearOutput"><div class="report-block"><div class="empty-state"><span class="emoji">📅</span>Нажмите «Сформировать», чтобы построить сводку</div></div></div>
+          </div>
+        </section>
+
+        <section class="tab-panel" id="tab-settings">
+          <div class="ux-section-header">
+            <span class="ux-overline">ПАРАМЕТРЫ КЛАССА</span>
+            <h2>Организация учебного года</h2>
+            <p>Расписание, четверти и особые дни в одном месте.</p>
+          </div>
+          
+          <div class="settings-card">
+            <h2>🏫 Класс</h2>
+            <p class="desc">Название отображается в шапке сайта и в заголовках отчётов.</p>
+            <input id="classNameInput" maxlength="50" placeholder='Например: 7 "А"' type="text"/>
+            <div style="margin-top: 12px;"><button class="btn-primary" onclick="saveClassName()">Сохранить</button></div>
+          </div>
+          
+          <div class="settings-card">
+            <h2>📅 Четверти и расписание</h2>
+            <p class="desc">Для каждой четверти можно задать свои даты и количество уроков в день.</p>
+            <div id="quartersForm"></div>
+            <div style="margin-top: 12px;"><button class="btn-primary" onclick="saveQuarters()">Сохранить настройки</button></div>
+          </div>
+          
+          <div class="settings-card">
+            <h2>🔔 Особые учебные дни</h2>
+            <p class="desc">Суббота или выходной, объявленный рабочим днём.</p>
+            <div class="special-add-row">
+              <div><label>Дата</label><input id="spDate" type="date"/></div>
+              <div><label>Уроков</label><input id="spLessons" max="15" min="1" type="number" value="7"/></div>
+              <button class="btn-primary" onclick="addSpecialDay()">Добавить</button>
+            </div>
+            <div class="special-list" id="specialDaysList"></div>
+          </div>
+          
+          <div class="settings-card">
+            <h2>🚫 Исключённые дни</h2>
+            <p class="desc">Праздники, каникулы, перенесённые выходные. Формат YYYY-MM-DD.</p>
+            <textarea id="excludedDatesEditor" placeholder="2026-11-04&#10;2026-12-31" spellcheck="false"></textarea>
+            <div style="margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap;">
+              <button class="btn-primary" onclick="saveExcludedDates()">Сохранить</button>
+              <button class="btn-secondary" onclick="fillBelarusHolidays()">🇧🇾 Праздники Беларуси</button>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="intervalBackdrop">
+  <div class="modal">
+    <h2>📅 Добавить интервал отсутствия</h2>
+    <p class="hint">Отметит ученика отсутствующим на все учебные дни в выбранном диапазоне.</p>
+    <div class="form-group"><label>Ученик</label><select id="intervalStudent"></select></div>
+    <div class="form-group"><label>Причина</label><select id="intervalReason"></select></div>
+    <div class="form-group" id="intervalMedReasonWrap" style="display:none;">
+      <label>Уточнение для мед. справки (необязательно)</label>
+      <select id="intervalMedReason">
+        <option value="">-- Не уточнять --</option>
+        <option value="cold">Простудные</option>
+        <option value="infectious">Инфекционные</option>
+        <option value="skin">Кожные</option>
+        <option value="injury">Травмы</option>
+        <option value="hospital">Больница</option>
+        <option value="examination">Обследование</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>С (включительно)</label><input id="intervalFrom" type="date"/></div>
+      <div class="form-group"><label>По (включительно)</label><input id="intervalTo" type="date"/></div>
+    </div>
+    <div class="form-group"><label>Комментарий (необязательно)</label><input id="intervalComment" placeholder="Например: Справка №145 от 14.10.2026" type="text"/></div>
+    <label class="checkbox-row"><input checked="" id="intervalSkipNonEdu" type="checkbox"/> Пропускать выходные и праздничные дни</label>
+    <div class="modal-actions"><button class="btn-secondary" onclick="closeIntervalModal()">Отмена</button><button class="btn-primary" onclick="saveInterval()">📅 Добавить</button></div>
+  </div>
+</div>
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal">
+    <h2>Редактировать список класса</h2>
+    <p class="hint">Введите ФИО учеников — по одному на строку.</p>
+    <textarea id="classListEditor" spellcheck="false"></textarea>
+    <div class="modal-actions"><button class="btn-secondary" onclick="document.getElementById('modalBackdrop').classList.remove('open')">Отмена</button><button class="btn-primary" onclick="saveClassList()">Сохранить</button></div>
+  </div>
+</div>
+<div class="modal-backdrop" id="passwordBackdrop">
+  <div class="modal">
+    <h2>Сменить пароль</h2>
+    <p class="hint">Введите новый пароль (минимум 6 символов).</p>
+    <div class="form-group"><label>Новый пароль</label><input id="newPassInput" placeholder="••••••••" type="password"/></div>
+    <div class="modal-actions"><button class="btn-secondary" onclick="document.getElementById('passwordBackdrop').classList.remove('open')">Отмена</button><button class="btn-primary" onclick="saveNewPassword()">Сохранить</button></div>
+  </div>
+</div>
+<div class="modal-backdrop" id="studentStatsBackdrop">
+  <div class="modal">
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
+      <h2 id="statsTitle">Статистика ученика</h2>
+      <button class="btn-secondary" onclick="document.getElementById('studentStatsBackdrop').classList.remove('open')" style="padding:4px 8px; min-height:0;">✕</button>
+    </div>
+    <div id="studentStatsContent"></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<button class="scroll-to-top" id="scrollTopBtn" aria-label="Наверх" title="Наверх">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 19V5M5 12l7-7 7 7"/>
+  </svg>
+</button>
+  <!-- Секретный плеер Яндекс Музыки -->
+<div id="secretMusicPlayer" style="display: none; position: fixed; bottom: 90px; right: 24px; width: 600px; max-width: calc(100vw - 48px); z-index: 400; box-shadow: 0 15px 50px rgba(0,0,0,0.6); border-radius: 20px; overflow: hidden; background: var(--card); border: 1px solid var(--border);">
+  <iframe id="yandexMusicIframe" width="100%" height="400" frameborder="0" style="border:none; display: block;" src="about:blank"></iframe>
+</div>
+<script src="easter-egg.js"></script>
+<script src="newyear.js"></script>
+<script src="app.js"></script>
+<script src="workspace-ui.js"></script>
+<script defer src="nova-experience.js"></script>
+</body>
+</html>
