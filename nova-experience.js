@@ -278,39 +278,46 @@
   } else {
     initScrollToTop();
   }
-    // Секретный плеер (3 клика по кнопке "Наверх")
+    // Секретный плеер (3 клика по кнопке "Наверх", ленивая загрузка iframe)
   function initSecretMusic() {
-    // НЕ включаем плеер на мобильных и планшетах
+    // НЕ включаем плеер на мобильных и планшетах — обработчик не вешается вовсе
     if (window.matchMedia('(max-width: 900px)').matches) return;
 
     var btn = document.getElementById('scrollTopBtn');
     var player = document.getElementById('secretMusicPlayer');
     var iframe = document.getElementById('yandexMusicIframe');
+    var closeBtn = document.getElementById('secretMusicClose');
     if (!btn || !player || !iframe) return;
+    if (btn.dataset.musicBound) return;
+    btn.dataset.musicBound = '1';
+
+    function setPlayerOpen(open) {
+      player.classList.toggle('is-open', open);
+      player.setAttribute('aria-hidden', String(!open));
+      if (open && !iframe.dataset.loaded) {
+        iframe.src = 'https://music.yandex.ru/iframe/playlist/nikita.tarancko/3';
+        iframe.dataset.loaded = '1';
+      }
+    }
+
+    if (closeBtn) {
+      closeBtn.addEventListener('click', function() {
+        setPlayerOpen(false);
+      });
+    }
 
     var clicks = 0;
     var timer = null;
 
-    btn.addEventListener('click', function(e) {
+    btn.addEventListener('click', function() {
       clicks++;
       if (clicks === 1) {
         timer = setTimeout(function() { clicks = 0; }, 1000);
       }
-      
       if (clicks >= 3) {
         clearTimeout(timer);
         clicks = 0;
-        
-        if (player.style.display === 'none' || player.style.display === '') {
-          player.style.display = 'block';
-          
-          if (iframe.src === 'about:blank' || iframe.src === '') {
-            // Твоя ссылка из Яндекс Музыки:
-            iframe.src = 'https://music.yandex.ru/iframe/playlist/nikita.tarancko/3'; 
-          }
-        } else {
-          player.style.display = 'none';
-        }
+        setPlayerOpen(!player.classList.contains('is-open'));
       }
     });
   }
