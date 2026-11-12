@@ -682,3 +682,53 @@ body.premium-app.nova-ui .viewer-select {
 body.premium-app.nova-ui select {
   font-size: 12px !important;
 }
+/* --- Секретный плеер Яндекс Музыки (ленивая загрузка) --- */
+#secretMusicPlayer {
+  display: none;
+  position: fixed;
+  bottom: 90px;
+  right: 24px;
+  width: 600px;
+  max-width: calc(100vw - 48px);
+  z-index: 400; /* 400 — поверх всего; 90 — под модалками */
+  box-shadow: 0 15px 50px rgba(0,0,0,0.6);
+  border-radius: 20px;
+  overflow: hidden;
+  background: var(--card);
+  border: 1px solid var(--border);
+}
+#secretMusicPlayer.is-open { display: block; }
+#secretMusicPlayer iframe { border: none; display: block; }
+
+/* Кнопка закрытия плеера */
+.secret-music-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 34px;
+  height: 34px;
+  min-height: 0;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.25);
+  background: rgba(10, 25, 40, 0.55);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  z-index: 2;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 4px 14px rgba(0,0,0,0.35);
+  transition: background 0.2s, transform 0.2s, border-color 0.2s;
+}
+.secret-music-close:hover {
+  background: rgba(248, 113, 113, 0.85);
+  border-color: rgba(255,255,255,0.45);
+  transform: scale(1.08);
+}
+.secret-music-close:active { transform: scale(0.95); }
+.secret-music-close:focus-visible { outline: 3px solid #37cee0; outline-offset: 2px; }
