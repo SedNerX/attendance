@@ -412,9 +412,10 @@
     <path d="M12 19V5M5 12l7-7 7 7"/>
   </svg>
 </button>
-  <!-- Секретный плеер Яндекс Музыки -->
-<div id="secretMusicPlayer" style="display: none; position: fixed; bottom: 90px; right: 24px; width: 600px; max-width: calc(100vw - 48px); z-index: 400; box-shadow: 0 15px 50px rgba(0,0,0,0.6); border-radius: 20px; overflow: hidden; background: var(--card); border: 1px solid var(--border);">
-  <iframe id="yandexMusicIframe" width="100%" height="400" frameborder="0" style="border:none; display: block;" src="about:blank"></iframe>
+<!-- Секретный плеер Яндекс Музыки (ленивая загрузка: src ставится только при первом открытии) -->
+<div id="secretMusicPlayer" aria-hidden="true">
+  <button type="button" id="secretMusicClose" class="secret-music-close" aria-label="Закрыть плеер" title="Закрыть">✕</button>
+  <iframe id="yandexMusicIframe" width="100%" height="400" frameborder="0" title="Секретный плеер" loading="lazy"></iframe>
 </div>
 <script src="easter-egg.js"></script>
 <script src="newyear.js"></script>
