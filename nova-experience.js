@@ -278,4 +278,46 @@
   } else {
     initScrollToTop();
   }
+    // Секретный плеер (3 клика по кнопке "Наверх")
+  function initSecretMusic() {
+    // НЕ включаем плеер на мобильных и планшетах
+    if (window.matchMedia('(max-width: 900px)').matches) return;
+
+    var btn = document.getElementById('scrollTopBtn');
+    var player = document.getElementById('secretMusicPlayer');
+    var iframe = document.getElementById('yandexMusicIframe');
+    if (!btn || !player || !iframe) return;
+
+    var clicks = 0;
+    var timer = null;
+
+    btn.addEventListener('click', function(e) {
+      clicks++;
+      if (clicks === 1) {
+        timer = setTimeout(function() { clicks = 0; }, 1000);
+      }
+      
+      if (clicks >= 3) {
+        clearTimeout(timer);
+        clicks = 0;
+        
+        if (player.style.display === 'none' || player.style.display === '') {
+          player.style.display = 'block';
+          
+          if (iframe.src === 'about:blank' || iframe.src === '') {
+            // Твоя ссылка из Яндекс Музыки:
+            iframe.src = 'https://music.yandex.ru/iframe/playlist/nikita.tarancko/3'; 
+          }
+        } else {
+          player.style.display = 'none';
+        }
+      }
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initSecretMusic);
+  } else {
+    initSecretMusic();
+  }
 })();
