@@ -63,8 +63,8 @@
         </button>
       </nav>
       
-      <!-- БЛОК ПРОФИЛЯ УЧИТЕЛЯ -->
-     
+      <!-- БЛОК НАСТРОЕК ОФОРМЛЕНИЯ (ПРИЖАТ К НИЗУ) -->
+      <div class="ux-side-footer">
         <details class="mobile-preferences">
           <summary>Настройки оформления</summary>
           <div class="side-tools">
@@ -84,6 +84,7 @@
           </div>
         </details>
       </div>
+      
     </aside>
     
     <div class="main">
@@ -107,20 +108,22 @@
               <path d="M20.5 14.5A8.5 8.5 0 0 1 9.5 3.5 8.5 8.5 0 1 0 20.5 14.5Z"></path>
             </svg>
           </button>
+          
           <div class="ux-profile-dropdown-wrap">
-  <button class="ux-profile-chip" type="button" id="uxProfileTrigger" onclick="toggleProfileMenu()">
-    <span class="ux-avatar">У</span>
-    <span class="ux-profile-copy"><strong>Учитель</strong><small id="uxProfileEmail">Личный кабинет</small></span>
-    <svg class="ux-profile-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
-  </button>
-  
-  <!-- ВЫПАДАЮЩЕЕ МЕНЮ -->
-  <div class="ux-profile-menu" id="uxProfileMenu">
-    <button class="ux-menu-btn" onclick="closeProfileMenu(); openPasswordModal();">🔑 Сменить пароль</button>
-    <div class="ux-menu-divider"></div>
-    <button class="ux-menu-btn ux-menu-danger" onclick="closeProfileMenu(); doLogout();">🚪 Выйти</button>
-  </div>
-</div>
+            <button class="ux-profile-chip" type="button" id="uxProfileTrigger" onclick="toggleProfileMenu()">
+              <span class="ux-avatar">У</span>
+              <span class="ux-profile-copy"><strong>Учитель</strong><small id="uxProfileEmail">Личный кабинет</small></span>
+              <svg class="ux-profile-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
+            </button>
+            
+            <!-- ВЫПАДАЮЩЕЕ МЕНЮ ПРОФИЛЯ -->
+            <div class="ux-profile-menu" id="uxProfileMenu">
+              <button class="ux-menu-btn" onclick="closeProfileMenu(); openPasswordModal();">🔑 Сменить пароль</button>
+              <div class="ux-menu-divider"></div>
+              <button class="ux-menu-btn ux-menu-danger" onclick="closeProfileMenu(); doLogout();">🚪 Выйти</button>
+            </div>
+          </div>
+          
         </div>
       </header>
       
