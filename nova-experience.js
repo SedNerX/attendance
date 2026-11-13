@@ -23,12 +23,14 @@
     reports: '<path d="M5 20V11m5 9V6m5 14v-8m5 8V4"/><path d="M3 20h19"/>',
     settings: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15.1l1.4 1.1-2 3.4-1.7-.7a8.9 8.9 0 0 1-2.1 1.2l-.3 1.9h-4l-.3-1.9a9 9 0 0 1-2.1-1.2l-1.7.7-2-3.4L6 15.1a8.9 8.9 0 0 1 0-2.3l-1.4-1.1 2-3.4 1.7.7a9 9 0 0 1 2.1-1.2l.3-1.9h4l.3 1.9a9 9 0 0 1 2.1 1.2l1.7-.7 2 3.4-1.4 1.1a8.9 8.9 0 0 1 0 2.3z" transform="translate(-.5 -1) scale(1.04)"/>',
     analytics: '<path d="M4 17l5-5 4 3 7-9"/><path d="M16 6h4v4"/><path d="M4 21h16"/>',
+    'admin-summary': '<rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 7h8M8 11h8M8 15h5"/>',
     '1':'<path d="M7 3h8l4 4v14H7z"/><path d="M15 3v5h5M10 12h6M10 16h6"/>',
     '2':'<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M7 14v3m5-7v7m5-10v10"/>',
     year:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4m10-4v4M3 10h18M8 15h4m-4 3h7"/>',
     elementary:'<path d="M3 21h18M5 21V9l7-5 7 5v12M9 21v-7h6v7M8 10h1m6 0h1"/>',
     high:'<path d="M4 21V5l8-3 8 3v16M2 21h20M9 8h.5m5 0h.5M9 12h.5m5 0h.5M10 21v-5h4v5"/>',
     yearly:'<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M7 2v4m10-4v4M3 10h18m-12 4h2m4 0h2m-8 4h2"/>'
+    
   };
   function svg(paths) {
     return '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">' + paths + '</svg>';
