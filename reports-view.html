@@ -46,11 +46,9 @@
 					<!-- ЭМБЛЕМА ШКОЛЫ -->
 					<div class="side-brand">
 						<img class="side-brand-logo" src="school_emblem_assets/school-emblem.webp" alt="Эмблема школы">
-      </div>
+      				</div>
 
 					<nav class="side-menu">
-					
-
 						<div class="ux-nav-group-label">Обзор</div>
 						<button class="side-btn active" data-report="analytics" onclick="switchReportPane('analytics');loadAnalytics()">
 							<span class="side-icon-wrap">
@@ -92,6 +90,15 @@
 						</button>
 
 						<div class="ux-nav-group-label">Сводки школы</div>
+						<button class="side-btn" data-report="admin-summary" onclick="switchReportPane('admin-summary')">
+							<span class="side-icon-wrap">
+								<span class="side-icon">📋</span>
+							</span>
+							<span class="side-body">
+								<span class="side-label">Свод для администрации</span>
+								<span class="side-sub">Общая форма</span>
+							</span>
+						</button>
 						<button class="side-btn" data-report="elementary" onclick="switchReportPane('elementary')">
 							<span class="side-icon-wrap">
 								<span class="side-icon">🏫</span>
@@ -239,7 +246,7 @@
 							</div>
 						</div>
 
-						<!-- СВОДКА -->
+						<!-- СВОДКА ЗА ГОД -->
 						<div class="report-pane" id="reportPane-year">
 							<div class="ux-section-header">
 								<span class="ux-overline">ОФИЦИАЛЬНАЯ ОТЧЁТНОСТЬ</span>
@@ -258,6 +265,38 @@
 									</div>
 								</div>
 							</div>
+						</div>
+
+						<!-- НОВАЯ СВОДКА ДЛЯ АДМИНИСТРАЦИИ -->
+						<div class="report-pane" id="reportPane-admin-summary">
+							<div class="ux-section-header">
+								<span class="ux-overline">ОФИЦИАЛЬНАЯ ОТЧЁТНОСТЬ</span>
+								<h2>Сводная таблица для администрации</h2>
+								<p>Количество обучающихся по категориям (на основе логики Отчёта №1).</p>
+							</div>
+							<div class="report-controls">
+								<label>📅 Период:</label>
+								<input id="adminSumFrom" type="date"/>
+								<span style="color:var(--muted)">—</span>
+								<input id="adminSumTo" type="date"/>
+								
+								<label>🏫 Выборка:</label>
+								<select class="quarter-select" id="adminSumScope" onchange="runAdminSummary()">
+									<option value="all">Вся школа (1–11)</option>
+									<option value="elementary">Началка (1–4)</option>
+									<option value="high">Старшая (5–11)</option>
+								</select>
+								
+								<button class="btn-primary" onclick="runAdminSummary()">Сформировать</button>
+							</div>
+							<div id="adminSumOutput">
+								<div class="report-block">
+									<div class="empty-state">
+										<span class="emoji">📋</span>Нажмите «Сформировать», чтобы построить отчёт
+									</div>
+								</div>
+							</div>
+							<button class="btn-secondary export-btn" onclick="exportSummaryExcel('admin')">📊 Скачать Excel</button>
 						</div>
 
 						<!-- СВОДКА НАЧАЛКА -->
