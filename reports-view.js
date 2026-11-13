@@ -265,6 +265,7 @@ function hasFullReason(idx, reason, eduDays) {
 
 function buildReport1(from, to, eduDays) {
   const analysis = currentClass.students.map((name, idx) => {
+    // «По болезни без мед. документов»: health_admin + parents_health
     const healthAdminMax = Math.max(
       maxConsecutiveFull(idx, eduDays, 'health_admin'),
       maxConsecutiveFull(idx, eduDays, 'parents_health')
@@ -274,10 +275,9 @@ function buildReport1(from, to, eduDays) {
       anyMax: maxConsecutiveFull(idx, eduDays),
       medMax: maxConsecutiveFull(idx, eduDays, 'medical'),
       healthAdminMax: healthAdminMax,
-      parentsMax: Math.max(
-        maxConsecutiveFull(idx, eduDays, 'parents_family'),
-        maxConsecutiveFull(idx, eduDays, 'parents_health')
-      ),
+      // «Уважительные с документами»: только parents_family
+      // (parents_health уже учтён выше, в healthAdminMax)
+      parentsMax: maxConsecutiveFull(idx, eduDays, 'parents_family'),
       surveyMax: maxConsecutiveFull(idx, eduDays, 'survey'),
       sportMax: maxConsecutiveFull(idx, eduDays, 'sport'),
       culturalMax: maxConsecutiveFull(idx, eduDays, 'cultural'),
@@ -287,7 +287,9 @@ function buildReport1(from, to, eduDays) {
     };
   });
   const f = pred => analysis.filter(pred).map(a => a.name);
-  
+
+  // Уважительные: 3+ дня подряд хотя бы по одной из этих причин
+  // (parents_health сюда НЕ входит — он в healthAdmin4)
   const respSet = new Set([
     ...f(a => a.parentsMax >= REPORT_CONSECUTIVE_DAYS),
     ...f(a => a.surveyMax >= REPORT_CONSECUTIVE_DAYS),
@@ -295,7 +297,7 @@ function buildReport1(from, to, eduDays) {
     ...f(a => a.culturalMax >= REPORT_CONSECUTIVE_DAYS),
     ...f(a => a.ozdMax >= REPORT_CONSECUTIVE_DAYS)
   ]);
-  
+
   return {
     from, to,
     total: currentClass.students.length,
