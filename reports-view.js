@@ -102,11 +102,10 @@ async function afterLogin(user) {
   document.getElementById('userEmail').textContent = user.email;
   await loadClasses();
   
-  // Принудительно применяем состояние вкладок при старте, чтобы скрыть/показать выбор класса
   if (document.getElementById('reportPane-analytics').classList.contains('active')) {
     switchReportPane('analytics');
   } else {
-    switchReportPane('1'); // По умолчанию, если активна первая вкладка
+    switchReportPane('1');
   }
 }
 
@@ -266,7 +265,6 @@ function hasFullReason(idx, reason, eduDays) {
 
 function buildReport1(from, to, eduDays) {
   const analysis = currentClass.students.map((name, idx) => {
-    // «По болезни без мед. документов»: health_admin + parents_health
     const healthAdminMax = Math.max(
       maxConsecutiveFull(idx, eduDays, 'health_admin'),
       maxConsecutiveFull(idx, eduDays, 'parents_health')
@@ -276,8 +274,6 @@ function buildReport1(from, to, eduDays) {
       anyMax: maxConsecutiveFull(idx, eduDays),
       medMax: maxConsecutiveFull(idx, eduDays, 'medical'),
       healthAdminMax: healthAdminMax,
-      // «Уважительные с документами»: только parents_family
-      // (parents_health уже учтён выше, в healthAdminMax)
       parentsMax: maxConsecutiveFull(idx, eduDays, 'parents_family'),
       surveyMax: maxConsecutiveFull(idx, eduDays, 'survey'),
       sportMax: maxConsecutiveFull(idx, eduDays, 'sport'),
@@ -289,8 +285,6 @@ function buildReport1(from, to, eduDays) {
   });
   const f = pred => analysis.filter(pred).map(a => a.name);
 
-  // Уважительные: 3+ дня подряд хотя бы по одной из этих причин
-  // (parents_health сюда НЕ входит — он в healthAdmin4)
   const respSet = new Set([
     ...f(a => a.parentsMax >= REPORT_CONSECUTIVE_DAYS),
     ...f(a => a.surveyMax >= REPORT_CONSECUTIVE_DAYS),
@@ -550,7 +544,6 @@ function switchReportPane(name) {
   document.querySelectorAll('.side-btn').forEach(b => b.classList.toggle('active', b.dataset.report === name));
   document.querySelectorAll('.report-pane').forEach(p => p.classList.toggle('active', p.id === 'reportPane-' + name));
   
-  // Находим плашку с выбором класса
   const toolbar = document.querySelector('.ux-class-toolbar');
   if (toolbar) {
     if (['analytics', 'elementary', 'high', 'yearly', 'admin-summary'].includes(name)) {
@@ -559,7 +552,6 @@ function switchReportPane(name) {
       toolbar.classList.remove('is-hidden');
     }
   }
-  // Скрываем/показываем чип с названием класса
   const indicator = document.querySelector('.ux-class-indicator');
   if (indicator) {
     if (['analytics', 'elementary', 'high', 'yearly', 'admin-summary'].includes(name)) {
@@ -650,7 +642,6 @@ async function runAdminSummary() {
   const data = await loadAllDataForSummary();
   if (!data) return;
 
-  // Фильтруем классы в зависимости от выбора
   let classes = Object.values(data).filter(c => {
     const grade = getClassGrade(c.name);
     if (!grade) return false; 
@@ -659,7 +650,6 @@ async function runAdminSummary() {
     return grade >= 1 && grade <= 11; 
   });
 
-  // Сортируем классы (1А, 1Б, 2А...)
   classes.sort((a, b) => a.name.localeCompare(b.name, undefined, {numeric: true}));
 
   if (!classes.length) {
@@ -671,9 +661,8 @@ async function runAdminSummary() {
   const rows = [];
   const grandTotal = { students: 0, s3plus: 0, med4: 0, healthAdmin4: 0, resp: 0, noresp: 0 };
 
-  // Перебираем каждый класс и считаем по логике Отчёта №1
   classes.forEach(cls => {
-    currentClass = cls; // временная подмена, чтобы buildReport1 работал
+    currentClass = cls;
     const eduDays = getEducationDays(from, to);
     const r = buildReport1(from, to, eduDays);
     
@@ -690,11 +679,10 @@ async function runAdminSummary() {
     rows.push({ type: 'class', name: cls.name || 'Без названия', data: rowData });
   });
 
-  currentClass = originalClass; // возвращаем как было
+  currentClass = originalClass;
   rows.push({ type: 'grandtotal', name: 'Всего', data: grandTotal });
   lastAdminSummary = rows; 
 
-  // Формируем HTML таблицы
   let html = '<div class="report-block">';
   html += `<p class="meta">Период: <b>${formatDateRu(from)}</b> — <b>${formatDateRu(to)}</b></p>`;
   html += '<div class="table-wrap"><table class="report-table exact-table" style="font-size:12px;">';
@@ -1106,7 +1094,6 @@ function initSummaryDates() {
   const y = today.getFullYear();
   const m = today.getMonth();
   
-  // Первое и последнее число текущего месяца
   const firstDay = `${y}-${String(m + 1).padStart(2, '0')}-01`;
   const lastDayDate = new Date(y, m + 1, 0);
   const lastDay = `${y}-${String(m + 1).padStart(2, '0')}-${String(lastDayDate.getDate()).padStart(2, '0')}`;
@@ -1115,27 +1102,6 @@ function initSummaryDates() {
   const elemTo = document.getElementById('elemTo');
   const highFrom = document.getElementById('highFrom');
   const highTo = document.getElementById('highTo');
-
-  if (elemFrom && !elemFrom.value) elemFrom.value = firstDay;
-  if (elemTo && !elemTo.value) elemTo.value = lastDay;
-  if (highFrom && !highFrom.value) highFrom.value = firstDay;
-  if (highTo && !highTo.value) highTo.value = lastDay;
-
-function initSummaryDates() {
-  const today = new Date();
-  const y = today.getFullYear();
-  const m = today.getMonth();
-  
-  const firstDay = `${y}-${String(m + 1).padStart(2, '0')}-01`;
-  const lastDayDate = new Date(y, m + 1, 0);
-  const lastDay = `${y}-${String(m + 1).padStart(2, '0')}-${String(lastDayDate.getDate()).padStart(2, '0')}`;
-
-  const elemFrom = document.getElementById('elemFrom');
-  const elemTo = document.getElementById('elemTo');
-  const highFrom = document.getElementById('highFrom');
-  const highTo = document.getElementById('highTo');
-  
-  // НОВЫЕ СТРОКИ:
   const adminFrom = document.getElementById('adminSumFrom');
   const adminTo = document.getElementById('adminSumTo');
 
@@ -1143,12 +1109,10 @@ function initSummaryDates() {
   if (elemTo && !elemTo.value) elemTo.value = lastDay;
   if (highFrom && !highFrom.value) highFrom.value = firstDay;
   if (highTo && !highTo.value) highTo.value = lastDay;
-  
-  // НОВЫЕ СТРОКИ:
   if (adminFrom && !adminFrom.value) adminFrom.value = firstDay;
   if (adminTo && !adminTo.value) adminTo.value = lastDay;
 }
-  
+
 (async function init() {
   try {
     initSummaryDates();
