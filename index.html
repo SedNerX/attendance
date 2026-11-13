@@ -64,17 +64,7 @@
       </nav>
       
       <!-- БЛОК ПРОФИЛЯ УЧИТЕЛЯ -->
-      <div class="ux-side-footer">
-        <div class="side-user">
-          <div class="user-info">
-            <div class="user-email" id="userEmail">—</div>
-            <div class="user-badge">Учитель</div>
-          </div>
-          <div class="user-actions">
-            <button class="btn-icon" onclick="openPasswordModal()" title="Сменить пароль">🔑</button>
-            <button class="btn-logout" onclick="doLogout()" title="Выйти из аккаунта">Выйти</button>
-          </div>
-        </div>
+     
         <details class="mobile-preferences">
           <summary>Настройки оформления</summary>
           <div class="side-tools">
@@ -117,10 +107,20 @@
               <path d="M20.5 14.5A8.5 8.5 0 0 1 9.5 3.5 8.5 8.5 0 1 0 20.5 14.5Z"></path>
             </svg>
           </button>
-          <div class="ux-profile-chip">
-            <span class="ux-avatar">У</span>
-            <span class="ux-profile-copy"><strong>Учитель</strong><small id="uxProfileEmail">Личный кабинет</small></span>
-          </div>
+          <div class="ux-profile-dropdown-wrap">
+  <button class="ux-profile-chip" type="button" id="uxProfileTrigger" onclick="toggleProfileMenu()">
+    <span class="ux-avatar">У</span>
+    <span class="ux-profile-copy"><strong>Учитель</strong><small id="uxProfileEmail">Личный кабинет</small></span>
+    <svg class="ux-profile-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
+  </button>
+  
+  <!-- ВЫПАДАЮЩЕЕ МЕНЮ -->
+  <div class="ux-profile-menu" id="uxProfileMenu">
+    <button class="ux-menu-btn" onclick="closeProfileMenu(); openPasswordModal();">🔑 Сменить пароль</button>
+    <div class="ux-menu-divider"></div>
+    <button class="ux-menu-btn ux-menu-danger" onclick="closeProfileMenu(); doLogout();">🚪 Выйти</button>
+  </div>
+</div>
         </div>
       </header>
       
@@ -416,6 +416,7 @@
 <div id="secretMusicPlayer" style="display: none; position: fixed; bottom: 90px; right: 24px; width: 600px; max-width: calc(100vw - 48px); z-index: 400; box-shadow: 0 15px 50px rgba(0,0,0,0.6); border-radius: 20px; overflow: hidden; background: var(--card); border: 1px solid var(--border);">
   <iframe id="yandexMusicIframe" width="100%" height="400" frameborder="0" style="border:none; display: block;" src="about:blank"></iframe>
 </div>
+<div id="userEmail" style="display:none;"></div>
 <script src="easter-egg.js"></script>
 <script src="newyear.js"></script>
 <script src="app.js"></script>
