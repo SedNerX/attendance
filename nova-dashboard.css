@@ -682,3 +682,92 @@ body.premium-app.nova-ui .viewer-select {
 body.premium-app.nova-ui select {
   font-size: 12px !important;
 }
+
+/* --- Выпадающее меню профиля --- */
+.ux-profile-dropdown-wrap {
+  position: relative;
+}
+
+/* Превращаем старый чип в кликабельную кнопку */
+body.premium-app.nova-ui .ux-profile-chip {
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  padding: 4px 8px 4px 4px;
+  border-radius: 14px;
+  transition: background 0.2s, border-color 0.2s;
+  font-family: inherit;
+}
+body.premium-app.nova-ui .ux-profile-chip:hover {
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(255,255,255,0.1);
+}
+.ux-profile-chevron {
+  width: 16px;
+  height: 16px;
+  color: var(--muted);
+  margin-left: 4px;
+  transition: transform 0.2s;
+}
+.ux-profile-chip.is-open .ux-profile-chevron {
+  transform: rotate(180deg);
+}
+
+/* Само выпадающее окно */
+.ux-profile-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 210px;
+  background: var(--nova-surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-8px);
+  transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+  z-index: 500;
+}
+.ux-profile-menu.is-open {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.ux-menu-btn {
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: transparent;
+  border: none;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: background 0.2s;
+}
+.ux-menu-btn:hover {
+  background: var(--card-hover);
+}
+.ux-menu-danger {
+  color: var(--danger);
+}
+.ux-menu-danger:hover {
+  background: rgba(248,113,113,0.1);
+}
+.ux-menu-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 8px;
+}
