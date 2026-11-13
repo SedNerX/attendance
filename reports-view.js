@@ -10,6 +10,7 @@ let lastReport2 = null;
 let lastElemSummary = null;
 let lastHighSummary = null;
 let lastYearlySummary = null;
+let lastAdminSummary = null;
 
 const REASONS = {
   '': { label: 'Присутствует' },
@@ -552,7 +553,7 @@ function switchReportPane(name) {
   // Находим плашку с выбором класса
   const toolbar = document.querySelector('.ux-class-toolbar');
   if (toolbar) {
-    if (['analytics', 'elementary', 'high', 'yearly'].includes(name)) {
+    if (['analytics', 'elementary', 'high', 'yearly', 'admin-summary'].includes(name)) {
       toolbar.classList.add('is-hidden');
     } else {
       toolbar.classList.remove('is-hidden');
@@ -561,7 +562,7 @@ function switchReportPane(name) {
   // Скрываем/показываем чип с названием класса
   const indicator = document.querySelector('.ux-class-indicator');
   if (indicator) {
-    if (['analytics', 'elementary', 'high', 'yearly'].includes(name)) {
+    if (['analytics', 'elementary', 'high', 'yearly', 'admin-summary'].includes(name)) {
       indicator.style.setProperty('display', 'none', 'important');
     } else {
       indicator.style.setProperty('display', 'inline-flex', 'important');
@@ -636,6 +637,84 @@ function getDayLessonsForClass(settings, dateStr) {
   if (dow === 0 || dow === 6) return 0;
   if ((settings.excluded_dates || []).includes(dateStr)) return 0;
   return (settings.schedule || {})[dow] || 0;
+}
+
+async function runAdminSummary() {
+  const from = document.getElementById('adminSumFrom').value;
+  const to = document.getElementById('adminSumTo').value;
+  const scope = document.getElementById('adminSumScope')?.value || 'all';
+  
+  if (!from || !to || from > to) { alert('Проверьте период'); return; }
+  
+  document.getElementById('adminSumOutput').innerHTML = '<div class="empty-state">Загрузка данных...</div>';
+  const data = await loadAllDataForSummary();
+  if (!data) return;
+
+  // Фильтруем классы в зависимости от выбора
+  let classes = Object.values(data).filter(c => {
+    const grade = getClassGrade(c.name);
+    if (!grade) return false; 
+    if (scope === 'elementary') return grade >= 1 && grade <= 4;
+    if (scope === 'high') return grade >= 5 && grade <= 11;
+    return grade >= 1 && grade <= 11; 
+  });
+
+  // Сортируем классы (1А, 1Б, 2А...)
+  classes.sort((a, b) => a.name.localeCompare(b.name, undefined, {numeric: true}));
+
+  if (!classes.length) {
+    document.getElementById('adminSumOutput').innerHTML = '<div class="report-block"><div class="empty-state">Нет классов для выбранной выборки</div></div>';
+    return;
+  }
+
+  const originalClass = currentClass;
+  const rows = [];
+  const grandTotal = { students: 0, s3plus: 0, med4: 0, healthAdmin4: 0, resp: 0, noresp: 0 };
+
+  // Перебираем каждый класс и считаем по логике Отчёта №1
+  classes.forEach(cls => {
+    currentClass = cls; // временная подмена, чтобы buildReport1 работал
+    const eduDays = getEducationDays(from, to);
+    const r = buildReport1(from, to, eduDays);
+    
+    const rowData = {
+      students: r.total,
+      s3plus: r.s3plus.length,
+      med4: r.med4.length,
+      healthAdmin4: r.healthAdmin4.length,
+      resp: r.resp.length,
+      noresp: r.noresp.length
+    };
+
+    Object.keys(grandTotal).forEach(k => grandTotal[k] += rowData[k]);
+    rows.push({ type: 'class', name: cls.name || 'Без названия', data: rowData });
+  });
+
+  currentClass = originalClass; // возвращаем как было
+  rows.push({ type: 'grandtotal', name: 'Всего', data: grandTotal });
+  lastAdminSummary = rows; 
+
+  // Формируем HTML таблицы
+  let html = '<div class="report-block">';
+  html += `<p class="meta">Период: <b>${formatDateRu(from)}</b> — <b>${formatDateRu(to)}</b></p>`;
+  html += '<div class="table-wrap"><table class="report-table exact-table" style="font-size:12px;">';
+  html += '<thead><tr><th>Классы</th><th>Общее кол-во обучающихся</th><th>3 уч. дня и более пропусков</th><th>Из них по болезни с мед. справкой</th><th>Из них по болезни без мед. справки</th><th>Из них по уважительным причинам (документы)</th><th>Из них без уважительной причины</th></tr></thead><tbody>';
+  
+  rows.forEach(r => {
+    const clsStyle = r.type === 'grandtotal' ? 'style="font-weight:800;background:var(--border);font-size:13px;"' : '';
+    html += `<tr ${clsStyle}>`;
+    html += `<td style="text-align:left; padding-left:10px; white-space:nowrap;">${escapeHtml(r.name)}</td>`;
+    html += `<td>${r.data.students || '0'}</td>`;
+    html += `<td>${r.data.s3plus || '0'}</td>`;
+    html += `<td>${r.data.med4 || '0'}</td>`;
+    html += `<td>${r.data.healthAdmin4 || '0'}</td>`;
+    html += `<td>${r.data.resp || '0'}</td>`;
+    html += `<td>${r.data.noresp || '0'}</td>`;
+    html += '</tr>';
+  });
+
+  html += '</tbody></table></div></div>';
+  document.getElementById('adminSumOutput').innerHTML = html;
 }
 
 async function runElementarySummary() {
@@ -950,11 +1029,40 @@ function exportSummaryExcel(type) {
   if (type === 'elem' && !lastElemSummary) { toast('Сначала сформируйте отчёт'); return; }
   if (type === 'high' && !lastHighSummary) { toast('Сначала сформируйте отчёт'); return; }
   if (type === 'yearly' && !lastYearlySummary) { toast('Сначала сформируйте отчёт'); return; }
+  if (type === 'admin' && !lastAdminSummary) { toast('Сначала сформируйте отчёт'); return; }
 
   const wb = XLSX.utils.book_new();
   const wsData = [];
 
-  if (type === 'elem') {
+  if (type === 'admin') {
+    const scopeSelect = document.getElementById('adminSumScope');
+    const scopeText = scopeSelect ? scopeSelect.options[scopeSelect.selectedIndex].text : '';
+    
+    wsData.push(['Выборка:', scopeText]);
+    wsData.push([]); // Пустая строка-разделитель
+    
+    wsData.push([
+      'Классы', 
+      'Общее количество обучающихся', 
+      '3+ дня подряд', 
+      'Из них по болезни с мед. справкой', 
+      'Из них по болезни без мед. справки', 
+      'Из них по уважительным причинам (документы)', 
+      'Из них без уважительной причины'
+    ]);
+    
+    lastAdminSummary.forEach(r => {
+      wsData.push([
+        r.name, 
+        r.data.students, 
+        r.data.s3plus, 
+        r.data.med4, 
+        r.data.healthAdmin4, 
+        r.data.resp, 
+        r.data.noresp
+      ]);
+    });
+  } else if (type === 'elem') {
     wsData.push(['Класс', 'Всего', 'По болезни', 'Простудные', 'Инфекц.', 'Кожные', 'Травмы', 'Больница', 'Обслед.', 'Санаторий', 'Заявление род.', 'Спорт', 'Культ-масс', 'Без уваж.', 'По сост. здор.', 'Посещ. врача']);
     lastElemSummary.forEach(r => {
       wsData.push([
@@ -1012,8 +1120,35 @@ function initSummaryDates() {
   if (elemTo && !elemTo.value) elemTo.value = lastDay;
   if (highFrom && !highFrom.value) highFrom.value = firstDay;
   if (highTo && !highTo.value) highTo.value = lastDay;
-}
 
+function initSummaryDates() {
+  const today = new Date();
+  const y = today.getFullYear();
+  const m = today.getMonth();
+  
+  const firstDay = `${y}-${String(m + 1).padStart(2, '0')}-01`;
+  const lastDayDate = new Date(y, m + 1, 0);
+  const lastDay = `${y}-${String(m + 1).padStart(2, '0')}-${String(lastDayDate.getDate()).padStart(2, '0')}`;
+
+  const elemFrom = document.getElementById('elemFrom');
+  const elemTo = document.getElementById('elemTo');
+  const highFrom = document.getElementById('highFrom');
+  const highTo = document.getElementById('highTo');
+  
+  // НОВЫЕ СТРОКИ:
+  const adminFrom = document.getElementById('adminSumFrom');
+  const adminTo = document.getElementById('adminSumTo');
+
+  if (elemFrom && !elemFrom.value) elemFrom.value = firstDay;
+  if (elemTo && !elemTo.value) elemTo.value = lastDay;
+  if (highFrom && !highFrom.value) highFrom.value = firstDay;
+  if (highTo && !highTo.value) highTo.value = lastDay;
+  
+  // НОВЫЕ СТРОКИ:
+  if (adminFrom && !adminFrom.value) adminFrom.value = firstDay;
+  if (adminTo && !adminTo.value) adminTo.value = lastDay;
+}
+  
 (async function init() {
   try {
     initSummaryDates();
