@@ -771,3 +771,51 @@ body.premium-app.nova-ui .ux-profile-chip:hover {
   background: var(--border);
   margin: 4px 8px;
 }
+
+/* --- Фикс выравнивания текста в профиле (по левому краю) --- */
+body.premium-app.nova-ui .ux-profile-chip {
+  display: flex;
+  align-items: center;
+  text-align: left;
+}
+body.premium-app.nova-ui .ux-profile-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start; /* Прижимаем текст влево */
+  margin-right: 8px;
+}
+
+/* --- Прижимаем настройки оформления к низу сайдбара --- */
+body.premium-app.nova-ui .sidebar {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Меню занимает всё свободное место, выталкивая футер вниз */
+body.premium-app.nova-ui .sidebar .side-menu {
+  flex: 1 1 auto; 
+}
+
+/* Футер (настройки оформления) прилипает к низу */
+body.premium-app.nova-ui .sidebar .ux-side-footer {
+  margin-top: auto;
+  padding-bottom: 5px;
+}
+
+/* Красивое оформление самого блока настроек на десктопе */
+body.premium-app.nova-ui .sidebar .mobile-preferences {
+  background: rgba(3,29,51,.21);
+  border: 1px solid rgba(171,233,248,.14);
+  border-radius: 14px;
+  padding: 0 10px;
+}
+body.premium-app.nova-ui .sidebar .mobile-preferences > summary {
+  padding: 12px 4px;
+  color: #d5eaf2;
+  font-size: 11px;
+  font-weight: 700;
+}
+/* Убираем стандартный маркер у details, чтобы было аккуратнее */
+body.premium-app.nova-ui .sidebar .mobile-preferences > summary::-webkit-details-marker {
+  display: none;
+}
