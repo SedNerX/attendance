@@ -322,4 +322,31 @@
   } else {
     initSecretMusic();
   }
+
+    // --- Управление выпадающим меню профиля ---
+  window.toggleProfileMenu = function() {
+    var menu = document.getElementById('uxProfileMenu');
+    var trigger = document.getElementById('uxProfileTrigger');
+    if (!menu || !trigger) return;
+    var isOpen = menu.classList.toggle('is-open');
+    trigger.classList.toggle('is-open', isOpen);
+  };
+  
+  window.closeProfileMenu = function() {
+    var menu = document.getElementById('uxProfileMenu');
+    var trigger = document.getElementById('uxProfileTrigger');
+    if (menu) menu.classList.remove('is-open');
+    if (trigger) trigger.classList.remove('is-open');
+  };
+
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('.ux-profile-dropdown-wrap')) {
+      window.closeProfileMenu();
+    }
+  });
+
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') window.closeProfileMenu();
+  });
+  
 })();
