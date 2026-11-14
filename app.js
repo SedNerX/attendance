@@ -313,7 +313,8 @@ async function afterLogin(user) {
   document.getElementById('loginScreen').style.display = 'none';
   document.querySelector('.container').style.display = '';
   document.getElementById('userEmail').textContent = user.email;
-  dateInput.value = todayStr();
+  const today = todayStr();
+  dateInput.value = isEducationDay(today) ? today : getLastEducationDay(today);
   updateHeader();
   render();
   refreshQuarterSelect();
