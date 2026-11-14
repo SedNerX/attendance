@@ -313,15 +313,25 @@ async function afterLogin(user) {
   document.getElementById('loginScreen').style.display = 'none';
   document.querySelector('.container').style.display = '';
   document.getElementById('userEmail').textContent = user.email;
+  
+  // --- ИСПРАВЛЕННЫЙ БЛОК ВЫБОРА ДАТЫ ---
   const today = todayStr();
-  dateInput.value = isEducationDay(today) ? today : getLastEducationDay(today);
+  const startDay = isEducationDay(today) ? today : getLastEducationDay(today);
+  dateInput.value = startDay; // Ставим правильную дату в инпут ДО вызова render()
+  
   updateHeader();
   render();
+  // ------------------------------------
+
   refreshQuarterSelect();
   initReportDates();
   loadSettingsForm();
   updateReport1Badge();
   updateReport2Badge();
+
+  if (!isEducationDay(today)) {
+    setTimeout(() => toast(`Сегодня выходной. Открыт последний учебный день: ${formatDateRu(startDay)}`), 800);
+  }
 }
 
 async function loadAll() {
@@ -2012,11 +2022,9 @@ document.addEventListener('keydown', e => {
 
 async function init() {
   loadPrefs();
-  const today = todayStr();
-  dateInput.value = isEducationDay(today) ? today : getLastEducationDay(today);
-    if (!isEducationDay(today)) {
-    setTimeout(() => toast(`Сегодня выходной. Открыт последний учебный день: ${formatDateRu(dateInput.value)}`), 800);
-  }
+  
+  // Убрали отсюда принудительную установку даты, так как она теперь корректно работает в afterLogin
+  
   document.querySelectorAll('.side-btn').forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
   document.getElementById('intervalBackdrop').addEventListener('click', e => {
     if (e.target.id === 'intervalBackdrop') closeIntervalModal();
@@ -2032,6 +2040,6 @@ async function init() {
     document.querySelector('.container').style.display = 'none';
   }
 }
-// В функции init() после await loadAll() и render() добавь:
+
 switchTab('attendance');
 init();
