@@ -819,3 +819,15 @@ body.premium-app.nova-ui .sidebar .mobile-preferences > summary {
 body.premium-app.nova-ui .sidebar .mobile-preferences > summary::-webkit-details-marker {
   display: none;
 }
+
+/* Фикс поиска на мобильных устройствах */
+@media (max-width: 620px) {
+  body.premium-app.nova-ui .ux-roster-board .search-input {
+    /* Увеличиваем отступ слева, чтобы текст не наезжал на иконку */
+    padding-left: 44px !important; 
+    /* Чуть уменьшаем размер шрифта для компактности */
+    font-size: 12px !important; 
+    background-position: left 14px center !important; /* Центрируем иконку */
+    background-size: 16px 16px !important; /* Делаем иконку чуть меньше */
+  }
+}
