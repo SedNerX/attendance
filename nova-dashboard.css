@@ -831,3 +831,39 @@ body.premium-app.nova-ui .sidebar .mobile-preferences > summary::-webkit-details
     background-size: 16px 16px !important; /* Делаем иконку чуть меньше */
   }
 }
+
+/* --- Фикс верхней панели на мобильных (скрываем лишний текст) --- */
+@media (max-width: 820px) {
+  /* Прячем текст в профиле, оставляем только аватарку и стрелочку */
+  body.premium-app.nova-ui .ux-profile-copy {
+    display: none !important;
+  }
+  
+  /* Убираем слово WORKSPACE из шапки, оставляем только иконку и "Журнал" */
+  body.premium-app.nova-ui .ux-crumbs > span:nth-child(2) {
+    display: none !important;
+  }
+  
+  /* Делаем отступы между элементами шапки чуть меньше */
+  body.premium-app.nova-ui .ux-topbar {
+    gap: 6px !important;
+  }
+  
+  /* Убираем слэш "/" */
+  body.premium-app.nova-ui .ux-crumb-slash {
+    display: none !important;
+  }
+
+  /* Выравниваем кнопку профиля, чтобы она не раздувалась */
+  body.premium-app.nova-ui .ux-profile-chip {
+    padding: 4px !important;
+    gap: 4px !important;
+  }
+  
+  /* Чуть уменьшаем стрелочку */
+  body.premium-app.nova-ui .ux-profile-chevron {
+    width: 14px !important;
+    height: 14px !important;
+    margin-left: 0 !important;
+  }
+}
