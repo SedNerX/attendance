@@ -13,6 +13,7 @@ let searchQuery = '';
 let selectedStudents = new Set();
 let studentNotes = {};
 let classGroups = [];
+let studentHomeschooled = {};
 let studentGroups = {};
 let isProfiled = false;
 let activeQuarterTab = 0;
@@ -306,18 +307,19 @@ async function afterLogin(user) {
 async function loadAll() {
   statusDot.className = 'status-dot connected';
 
-  // Загрузка учеников (с group_id)
-  const { data: st, error: stErr } = await sb.from('students').select('id, full_name, position, note, group_id').eq('class_id', currentClassId).order('position');
+  // Загрузка учеников (с group_id и is_homeschooled)
+  const { data: st, error: stErr } = await sb.from('students').select('id, full_name, position, note, group_id, is_homeschooled').eq('class_id', currentClassId).order('position');
   if (stErr) {
     toast('Ошибка загрузки учеников: ' + stErr.message);
-    students = []; studentIds = []; studentNotes = {}; studentGroups = {};
+    students = []; studentIds = []; studentNotes = {}; studentGroups = {}; studentHomeschooled = {};
   } else {
     students = (st || []).map(r => r.full_name);
     studentIds = (st || []).map(r => r.id);
-    studentNotes = {}; studentGroups = {};
+    studentNotes = {}; studentGroups = {}; studentHomeschooled = {};
     (st || []).forEach(r => { 
       if (r.note) studentNotes[r.id] = r.note; 
       if (r.group_id) studentGroups[r.id] = r.group_id;
+      if (r.is_homeschooled) studentHomeschooled[r.id] = true;
     });
   }
 
@@ -325,8 +327,9 @@ async function loadAll() {
   absences = {};
   if (studentIds.length) {
     const { data: ab, error: abErr } = await sb.from('absences').select('*').in('student_id', studentIds);
-    if (abErr) { toast('Ошибка загрузки пропусков: ' + abErr.message); } 
-    else {
+    if (abErr) {
+      toast('Ошибка загрузки пропусков: ' + abErr.message);
+    } else {
       const idToIdx = new Map();
       studentIds.forEach((id, i) => idToIdx.set(String(id), i));
       (ab || []).forEach(a => {
@@ -334,9 +337,12 @@ async function loadAll() {
         if (idx === undefined) return;
         if (!absences[a.date]) absences[a.date] = {};
         absences[a.date][idx] = {
-          reason: a.reason, full: a.is_full_day !== false,
-          from: a.lesson_from, to: a.lesson_to,
-          comment: a.comment || '', medical_reason: a.medical_reason || ''
+          reason: a.reason,
+          full: a.is_full_day !== false,
+          from: a.lesson_from,
+          to: a.lesson_to,
+          comment: a.comment || '',
+          medical_reason: a.medical_reason || ''
         };
       });
     }
@@ -344,8 +350,9 @@ async function loadAll() {
 
   // Загрузка настроек класса
   const { data: cfg, error: cfgErr } = await sb.from('class_settings').select('*').eq('class_id', currentClassId).maybeSingle();
-  if (cfgErr) { toast('Ошибка загрузки настроек: ' + cfgErr.message); } 
-  else if (cfg) {
+  if (cfgErr) {
+    toast('Ошибка загрузки настроек: ' + cfgErr.message);
+  } else if (cfg) {
     schedule = cfg.schedule || schedule;
     quarters = (Array.isArray(cfg.quarters) && cfg.quarters.length === 4) ? cfg.quarters : defaultQuarters();
     excludedDates = Array.isArray(cfg.excluded_dates) ? cfg.excluded_dates : [];
@@ -766,18 +773,23 @@ async function saveStudentNote(idx) {
   const note = document.getElementById('studentNoteInput').value.trim();
   const groupSelect = document.getElementById('studentGroupSelect');
   const groupId = groupSelect ? (groupSelect.value || null) : null;
+  const homeCheck = document.getElementById('studentHomeschooledInput');
+  const isHomeschooled = homeCheck ? homeCheck.checked : false;
   const sid = studentIds[idx];
 
-  const { error } = await sb.from('students').update({ note, group_id: groupId }).eq('id', sid);
+  const { error } = await sb.from('students').update({ 
+    note, group_id: groupId, is_homeschooled: isHomeschooled 
+  }).eq('id', sid);
+  
   if (error) { toast(error.message); return; }
   
   if (note) studentNotes[sid] = note; else delete studentNotes[sid];
   if (groupId) studentGroups[sid] = groupId; else delete studentGroups[sid];
+  if (isHomeschooled) studentHomeschooled[sid] = true; else delete studentHomeschooled[sid];
   
   document.getElementById('studentStatsBackdrop').classList.remove('open');
   toast('Сохранено');
   render();
-  logAction(`Обновлены настройки ученика ${students[idx]}`);
 }
 
 function openIntervalModal(prefillIdx) {
