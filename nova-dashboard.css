@@ -867,3 +867,19 @@ body.premium-app.nova-ui .sidebar .mobile-preferences > summary::-webkit-details
     margin-left: 0 !important;
   }
 }
+
+/* --- Переключатель профильного класса --- */
+.settings-toggle-row {
+  display: flex; justify-content: space-between; align-items: center; gap: 20px;
+  padding: 16px; background: rgba(var(--primary-rgb), 0.04); border: 1px solid var(--border);
+  border-radius: 14px; margin-bottom: 20px;
+}
+.settings-toggle-row strong { display: block; font-size: 14px; margin-bottom: 4px; color: var(--text); }
+.settings-toggle-row p { font-size: 11px; line-height: 1.4; color: var(--muted); }
+
+.ux-switch { position: relative; display: inline-block; width: 46px; height: 26px; flex-shrink: 0; cursor: pointer; }
+.ux-switch input { opacity: 0; width: 0; height: 0; }
+.ux-slider { position: absolute; inset: 0; background-color: var(--input-bg); border: 1px solid var(--border); border-radius: 34px; transition: .3s; }
+.ux-slider:before { content: ""; position: absolute; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: var(--muted); border-radius: 50%; transition: .3s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.ux-switch input:checked + .ux-slider { background-color: var(--primary); border-color: var(--primary); }
+.ux-switch input:checked + .ux-slider:before { transform: translateX(20px); background-color: #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.2); }
