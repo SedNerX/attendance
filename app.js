@@ -1215,11 +1215,19 @@ function exportExcel(reportNum) {
 // ==========================================
 
 function loadSettingsForm() {
+  // --- АВТОВЫБОР ТЕКУЩЕЙ ЧЕТВЕРТИ ---
+  const todayStrVal = todayStr();
+  const currentQIdx = quarters.findIndex(q => todayStrVal >= q.from && todayStrVal <= q.to);
+  groupActiveQuarter = currentQIdx !== -1 ? currentQIdx : 0;
+  // ----------------------------------
+
   document.getElementById('classNameInput').value = className;
+  
   const isProf = document.getElementById('isProfiledCheckbox');
   if (isProf) isProf.checked = isProfiled;
   toggleProfiledClass(false); // Визуально обновляем интерфейс без сохранения в БД
   
+  // Отрисовка полей для обычных классов (даты и уроки по дням)
   document.getElementById('quartersForm').innerHTML = quarters.map((q, i) => {
     const s = q.schedule || { 0:0, 1:7, 2:7, 3:7, 4:7, 5:7, 6:0 };
     return `
@@ -1239,6 +1247,7 @@ function loadSettingsForm() {
     </div>`;
   }).join('');
   
+  // Обновление остальных полей настроек
   document.getElementById('excludedDatesEditor').value = excludedDates.join('\n');
   renderSpecialDaysList();
 }
