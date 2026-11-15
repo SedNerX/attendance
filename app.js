@@ -897,10 +897,15 @@ async function saveClassList() {
   const existingByPos = {};
   (existing || []).forEach(e => { existingByPos[e.position] = e.id; });
 
-  const toUpdate = [], toInsert = [];
+  const toUpdate = [];
+  const toInsert = [];
   for (let i = 0; i < lines.length; i++) {
-    if (existingByPos[i]) toUpdate.push({ id: existingByPos[i], full_name: lines[i], position: i });
-    else toInsert.push({ class_id: currentClassId, full_name: lines[i], position: i });
+    if (existingByPos[i]) {
+      // Добавляем class_id, чтобы RLS разрешила обновление
+      toUpdate.push({ id: existingByPos[i], class_id: currentClassId, full_name: lines[i], position: i });
+    } else {
+      toInsert.push({ class_id: currentClassId, full_name: lines[i], position: i });
+    }
   }
 
   const extras = (existing || []).filter(e => e.position >= lines.length).map(e => e.id);
