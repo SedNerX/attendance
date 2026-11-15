@@ -326,9 +326,34 @@
           
           <div class="settings-card">
             <h2>📅 Четверти и расписание</h2>
-            <p class="desc">Для каждой четверти можно задать свои даты и количество уроков в день.</p>
-            <div id="quartersForm"></div>
-            <div style="margin-top: 12px;"><button class="btn-primary" onclick="saveQuarters()">Сохранить настройки</button></div>
+            
+            <!-- КРАСИВЫЙ ПЕРЕКЛЮЧАТЕЛЬ -->
+            <div class="settings-toggle-row">
+              <div>
+                <strong>Профильный класс (10–11)</strong>
+                <p class="desc" style="margin-bottom:0;">Если включено, класс делится на группы (например, физмат и гуманитарный), у каждой из которых своё расписание.</p>
+              </div>
+              <label class="ux-switch">
+                <input type="checkbox" id="isProfiledCheckbox" onchange="toggleProfiledClass()">
+                <span class="ux-slider"></span>
+              </label>
+            </div>
+
+            <!-- СЕТКА ЧЕТВЕРТЕЙ (СКРОЕТСЯ ПРИ ПРОФИЛЬНОМ КЛАССЕ) -->
+            <div id="regularScheduleWrapper">
+              <div id="quartersForm"></div>
+              <div style="margin-top: 12px;"><button class="btn-primary" onclick="saveQuarters()">Сохранить настройки</button></div>
+            </div>
+
+            <!-- БЛОК ГРУПП (ПОКАЖЕТСЯ ПРИ ПРОФИЛЬНОМ КЛАССЕ) -->
+            <div id="groupsSettingsCard" style="display: none;">
+              <div id="groupsList"></div>
+              <div style="margin-top: 12px; display: flex; gap: 8px;">
+                <input type="text" id="newGroupName" placeholder="Название (напр. Физмат)" style="flex:1; padding: 10px 12px; border-radius: 11px; border: 1.5px solid var(--border); background: var(--input-bg); color: var(--text);">
+                <button class="btn-secondary" onclick="addClassGroup()">➕ Добавить группу</button>
+              </div>
+            </div>
+            
           </div>
           
           <div class="settings-card">
