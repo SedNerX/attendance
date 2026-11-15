@@ -12,6 +12,10 @@ let undoStack = [];
 let searchQuery = '';
 let selectedStudents = new Set();
 let studentNotes = {};
+let classGroups = [];
+let studentGroups = {};
+let isProfiled = false;
+let groupActiveQuarter = {}; // Для хранения вкладок четвертей в настройках групп
 
 const REASONS = {
   '': { label: 'Присутствует', emoji: '✅', cls: '' },
@@ -28,12 +32,8 @@ const REASONS = {
 };
 const REASON_KEYS = ['medical', 'health_admin', 'parents_family', 'parents_health', 'survey', 'sport', 'cultural', 'ozdorovlenie', 'norespect', 'other'];
 const MEDICAL_REASONS = {
-  'cold': 'Простудные',
-  'infectious': 'Инфекционные',
-  'skin': 'Кожные',
-  'injury': 'Травмы',
-  'hospital': 'Больница',
-  'examination': 'Обследование'
+  'cold': 'Простудные', 'infectious': 'Инфекционные', 'skin': 'Кожные',
+  'injury': 'Травмы', 'hospital': 'Больница', 'examination': 'Обследование'
 };
 
 const LS_THEME = 'attendance_theme_v1';
@@ -109,21 +109,38 @@ function getSpecialDay(dateStr) {
   return specialDays.find(s => s.date === dateStr);
 }
 
-function getDayLessons(dateStr) {
-  const sp = getSpecialDay(dateStr);
-  if (sp) return sp.lessons;
-  
+function getQuarterIndexForDate(dateStr) {
+  return quarters.findIndex(q => dateStr >= q.from && dateStr <= q.to);
+}
+
+// Главная функция подсчета уроков (учитывает группы)
+function getDayLessons(dateStr, studentId = null) {
   const dow = dowOf(dateStr);
-  if (dow === 0 || dow === 6) return 0;
-  if (excludedDates.includes(dateStr)) return 0;
+  const sp = getSpecialDay(dateStr);
   
-  // Ищем четверть, в которую попадает эта дата
-  const q = quarters.find(q => dateStr >= q.from && dateStr <= q.to);
-  if (q && q.schedule) {
-    return q.schedule[dow] || 0;
+  if (dow === 0 || dow === 6 || excludedDates.includes(dateStr)) {
+     if (!sp) return 0;
   }
-  
-  // Если дата вне четвертей, используем глобальное расписание (запасной вариант)
+
+  // Если класс профильный и ученик в группе
+  if (studentId && isProfiled && studentGroups[studentId]) {
+    const grp = classGroups.find(g => g.id === studentGroups[studentId]);
+    if (grp && grp.schedules) {
+      const qIdx = getQuarterIndexForDate(dateStr);
+      if (qIdx !== -1) {
+        const sched = grp.schedules[qIdx];
+        if (sched) {
+          if (sp) return Math.min(sp.lessons, sched[dow] || 0);
+          return sched[dow] || 0;
+        }
+      }
+    }
+  }
+
+  // Стандартная логика
+  if (sp) return sp.lessons;
+  const q = quarters.find(q => dateStr >= q.from && dateStr <= q.to);
+  if (q && q.schedule) return q.schedule[dow] || 0;
   return schedule[dow] || 0;
 }
 
@@ -167,20 +184,13 @@ function setAccent(hex, rgbStr) {
 }
 
 function loadPrefs() {
-  let th = localStorage.getItem(LS_THEME) || 'light'; // По умолчанию светлая
-  
-  // Если сейчас зима, и пользователь не выбирал тему вручную — включаем тёмную
+  let th = localStorage.getItem(LS_THEME) || 'light';
   const isNewYearSeason = document.body.classList.contains('newyear');
   if (isNewYearSeason && (!localStorage.getItem(LS_THEME) || localStorage.getItem(LS_THEME) === 'auto')) {
     th = 'dark';
   }
-  
   let ac = null;
-  try {
-    ac = JSON.parse(localStorage.getItem(LS_ACCENT) || 'null');
-  } catch (e) {
-    ac = null;
-  }
+  try { ac = JSON.parse(localStorage.getItem(LS_ACCENT) || 'null'); } catch (e) { ac = null; }
   setTheme(th);
   if (ac && ac.hex && ac.rgbStr) setAccent(ac.hex, ac.rgbStr);
 }
@@ -202,68 +212,28 @@ async function doLogin() {
   const err = document.getElementById('loginErr');
   const btn = document.getElementById('loginBtn');
   err.textContent = '';
-  if (!email || !pass) {
-    err.textContent = 'Введите email и пароль';
-    return;
-  }
-  btn.disabled = true;
-  btn.textContent = 'Вход…';
+  if (!email || !pass) { err.textContent = 'Введите email и пароль'; return; }
+  btn.disabled = true; btn.textContent = 'Вход…';
   const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
-  btn.disabled = false;
-  btn.textContent = 'Войти';
-  if (error) {
-    err.textContent = error.message;
-    return;
-  }
-  if (!data || !data.user) {
-    err.textContent = 'Не удалось получить пользователя';
-    return;
-  }
+  btn.disabled = false; btn.textContent = 'Войти';
+  if (error) { err.textContent = error.message; return; }
+  if (!data || !data.user) { err.textContent = 'Не удалось получить пользователя'; return; }
   await afterLogin(data.user);
 }
 
 async function doLogout() {
   await sb.auth.signOut();
-
-  clearTimeout(saveTimer);
-  clearTimeout(searchDebounce);
-  saveTimer = null;
-  searchDebounce = null;
-
-  currentUser = null;
-  currentClassId = null;
-  studentIds = [];
-  students = [];
-  absences = {};
-  studentNotes = {};
-
-  undoStack = [];
-  searchQuery = '';
-  selectedStudents.clear();
-  expandedRows.clear();
-
-  schedule = { 0:0, 1:7, 2:7, 3:7, 4:7, 5:7, 6:0 };
-  excludedDates = [];
-  specialDays = [];
-  quarters = [];
-  className = '';
-
-  lastReport1 = null;
-  lastReport2 = null;
-
-  activeSaves = 0;
-  lastSaveError = false;
-  saveChains.clear();
-
-  statusDot.className = 'status-dot connected';
-  saveStatus.textContent = '';
-
-  const selectAll = document.getElementById('selectAll');
-  if (selectAll) selectAll.checked = false;
-  updateBulkPanel();
-
-  updateHeader();
-
+  clearTimeout(saveTimer); clearTimeout(searchDebounce);
+  saveTimer = null; searchDebounce = null;
+  currentUser = null; currentClassId = null; studentIds = []; students = []; absences = {}; studentNotes = {};
+  undoStack = []; searchQuery = ''; selectedStudents.clear(); expandedRows.clear();
+  schedule = { 0:0, 1:7, 2:7, 3:7, 4:7, 5:7, 6:0 }; excludedDates = []; specialDays = []; quarters = []; className = '';
+  classGroups = []; studentGroups = {}; isProfiled = false;
+  lastReport1 = null; lastReport2 = null;
+  activeSaves = 0; lastSaveError = false; saveChains.clear();
+  statusDot.className = 'status-dot connected'; saveStatus.textContent = '';
+  const selectAll = document.getElementById('selectAll'); if (selectAll) selectAll.checked = false;
+  updateBulkPanel(); updateHeader();
   document.getElementById('loginScreen').style.display = 'flex';
   document.querySelector('.container').style.display = 'none';
 }
@@ -275,15 +245,9 @@ function openPasswordModal() {
 
 async function saveNewPassword() {
   const p = document.getElementById('newPassInput').value;
-  if (p.length < 6) {
-    alert('Пароль должен быть минимум 6 символов');
-    return;
-  }
+  if (p.length < 6) { alert('Пароль должен быть минимум 6 символов'); return; }
   const { error } = await sb.auth.updateUser({ password: p });
-  if (error) {
-    alert(error.message);
-    return;
-  }
+  if (error) { alert(error.message); return; }
   document.getElementById('passwordBackdrop').classList.remove('open');
   toast('Пароль успешно изменён');
   await logAction('Смена пароля');
@@ -301,9 +265,7 @@ async function afterLogin(user) {
     classRow = nc;
     const { error: e3 } = await sb.from('class_settings').insert({ class_id: classRow.id });
     if (e3) toast('Не удалось создать настройки класса: ' + e3.message);
-  } else {
-    classRow = cls[0];
-  }
+  } else { classRow = cls[0]; }
 
   currentClassId = classRow.id;
   className = classRow.name || '';
@@ -314,15 +276,12 @@ async function afterLogin(user) {
   document.querySelector('.container').style.display = '';
   document.getElementById('userEmail').textContent = user.email;
   
-  // --- ИСПРАВЛЕННЫЙ БЛОК ВЫБОРА ДАТЫ ---
   const today = todayStr();
   const startDay = isEducationDay(today) ? today : getLastEducationDay(today);
-  dateInput.value = startDay; // Ставим правильную дату в инпут ДО вызова render()
+  dateInput.value = startDay;
   
   updateHeader();
   render();
-  // ------------------------------------
-
   refreshQuarterSelect();
   initReportDates();
   loadSettingsForm();
@@ -337,25 +296,27 @@ async function afterLogin(user) {
 async function loadAll() {
   statusDot.className = 'status-dot connected';
 
-  const { data: st, error: stErr } = await sb.from('students').select('id, full_name, position, note').eq('class_id', currentClassId).order('position');
+  // Загрузка учеников (с group_id)
+  const { data: st, error: stErr } = await sb.from('students').select('id, full_name, position, note, group_id').eq('class_id', currentClassId).order('position');
   if (stErr) {
     toast('Ошибка загрузки учеников: ' + stErr.message);
-    students = [];
-    studentIds = [];
-    studentNotes = {};
+    students = []; studentIds = []; studentNotes = {}; studentGroups = {};
   } else {
     students = (st || []).map(r => r.full_name);
     studentIds = (st || []).map(r => r.id);
-    studentNotes = {};
-    (st || []).forEach(r => { if (r.note) studentNotes[r.id] = r.note; });
+    studentNotes = {}; studentGroups = {};
+    (st || []).forEach(r => { 
+      if (r.note) studentNotes[r.id] = r.note; 
+      if (r.group_id) studentGroups[r.id] = r.group_id;
+    });
   }
 
+  // Загрузка пропусков
   absences = {};
   if (studentIds.length) {
     const { data: ab, error: abErr } = await sb.from('absences').select('*').in('student_id', studentIds);
-    if (abErr) {
-      toast('Ошибка загрузки пропусков: ' + abErr.message);
-    } else {
+    if (abErr) { toast('Ошибка загрузки пропусков: ' + abErr.message); } 
+    else {
       const idToIdx = new Map();
       studentIds.forEach((id, i) => idToIdx.set(String(id), i));
       (ab || []).forEach(a => {
@@ -363,29 +324,31 @@ async function loadAll() {
         if (idx === undefined) return;
         if (!absences[a.date]) absences[a.date] = {};
         absences[a.date][idx] = {
-        reason: a.reason,
-        full: a.is_full_day !== false,
-        from: a.lesson_from,
-        to: a.lesson_to,
-        comment: a.comment || '',
-        medical_reason: a.medical_reason || ''
+          reason: a.reason, full: a.is_full_day !== false,
+          from: a.lesson_from, to: a.lesson_to,
+          comment: a.comment || '', medical_reason: a.medical_reason || ''
         };
       });
     }
   }
 
+  // Загрузка настроек класса
   const { data: cfg, error: cfgErr } = await sb.from('class_settings').select('*').eq('class_id', currentClassId).maybeSingle();
-  if (cfgErr) {
-    toast('Ошибка загрузки настроек: ' + cfgErr.message);
-  } else if (cfg) {
+  if (cfgErr) { toast('Ошибка загрузки настроек: ' + cfgErr.message); } 
+  else if (cfg) {
     schedule = cfg.schedule || schedule;
     quarters = (Array.isArray(cfg.quarters) && cfg.quarters.length === 4) ? cfg.quarters : defaultQuarters();
     excludedDates = Array.isArray(cfg.excluded_dates) ? cfg.excluded_dates : [];
     specialDays = Array.isArray(cfg.special_days) ? cfg.special_days : [];
+    isProfiled = cfg.is_profiled || false;
   }
 
   if (!quarters.length) quarters = defaultQuarters();
   if (!Object.keys(schedule).length) schedule = { 0:0, 1:7, 2:7, 3:7, 4:7, 5:7, 6:0 };
+
+  // Загрузка групп класса
+  const { data: grps } = await sb.from('class_groups').select('*').eq('class_id', currentClassId);
+  classGroups = grps || [];
 }
 
 let activeSaves = 0;
@@ -393,10 +356,8 @@ let lastSaveError = false;
 const saveChains = new Map();
 
 function beginSave() {
-  activeSaves++;
-  lastSaveError = false;
-  statusDot.className = 'status-dot saving';
-  saveStatus.textContent = 'Сохранение...';
+  activeSaves++; lastSaveError = false;
+  statusDot.className = 'status-dot saving'; saveStatus.textContent = 'Сохранение...';
 }
 
 function endSave(ok) {
@@ -404,13 +365,10 @@ function endSave(ok) {
   if (!ok) lastSaveError = true;
   if (activeSaves === 0) {
     statusDot.className = 'status-dot connected';
-    if (lastSaveError) {
-      saveStatus.textContent = 'Ошибка';
-    } else {
+    if (lastSaveError) { saveStatus.textContent = 'Ошибка'; } 
+    else {
       saveStatus.textContent = '✓ Сохранено';
-      setTimeout(() => {
-        if (saveStatus.textContent === '✓ Сохранено' && activeSaves === 0) saveStatus.textContent = '';
-      }, 2000);
+      setTimeout(() => { if (saveStatus.textContent === '✓ Сохранено' && activeSaves === 0) saveStatus.textContent = ''; }, 2000);
     }
     lastSaveError = false;
   }
@@ -421,11 +379,7 @@ async function saveAbsencesForDay(day) {
   const prev = saveChains.get(day) || Promise.resolve();
   const next = prev.catch(() => {}).then(() => doSaveAbsencesForDay(day));
   saveChains.set(day, next);
-  try {
-    return await next;
-  } finally {
-    if (saveChains.get(day) === next) saveChains.delete(day);
-  }
+  try { return await next; } finally { if (saveChains.get(day) === next) saveChains.delete(day); }
 }
 
 async function doSaveAbsencesForDay(day) {
@@ -433,61 +387,36 @@ async function doSaveAbsencesForDay(day) {
   try {
     const dayData = absences[day] || {};
     const { data: existing, error: fetchError } = await sb.from('absences').select('id, student_id').eq('date', day).in('student_id', studentIds);
-
-    if (fetchError) {
-      console.warn(fetchError);
-      toast('Ошибка загрузки данных: ' + fetchError.message);
-      endSave(false);
-      return;
-    }
+    if (fetchError) { console.warn(fetchError); toast('Ошибка загрузки данных: ' + fetchError.message); endSave(false); return; }
 
     const existingByStudent = {};
     (existing || []).forEach(e => { existingByStudent[String(e.student_id)] = e.id; });
 
-    const toDelete = [];
-    const toUpsert = [];
+    const toDelete = [], toUpsert = [];
     studentIds.forEach((sid, idx) => {
       const a = dayData[idx];
       const key = String(sid);
-      if (!a) {
-        if (existingByStudent[key]) toDelete.push(existingByStudent[key]);
-      } else {
+      if (!a) { if (existingByStudent[key]) toDelete.push(existingByStudent[key]); } 
+      else {
         toUpsert.push({
-        student_id: sid,
-        date: day,
-        reason: a.reason,
-        is_full_day: a.full !== false,
-        lesson_from: a.full === false ? a.from : null,
-        lesson_to: a.full === false ? a.to : null,
-        comment: a.comment || null,
-        medical_reason: a.reason === 'medical' ? (a.medical_reason || null) : null
+          student_id: sid, date: day, reason: a.reason,
+          is_full_day: a.full !== false,
+          lesson_from: a.full === false ? a.from : null,
+          lesson_to: a.full === false ? a.to : null,
+          comment: a.comment || null,
+          medical_reason: a.reason === 'medical' ? (a.medical_reason || null) : null
         });
       }
     });
 
-    if (toDelete.length) {
-      const { error: delError } = await sb.from('absences').delete().in('id', toDelete);
-      if (delError) throw delError;
-    }
-    if (toUpsert.length) {
-      const { error: upsertError } = await sb.from('absences').upsert(toUpsert, { onConflict: 'student_id,date' });
-      if (upsertError) throw upsertError;
-    }
+    if (toDelete.length) { const { error } = await sb.from('absences').delete().in('id', toDelete); if (error) throw error; }
+    if (toUpsert.length) { const { error } = await sb.from('absences').upsert(toUpsert, { onConflict: 'student_id,date' }); if (error) throw error; }
     endSave(true);
-  } catch (e) {
-    console.warn(e);
-    toast('Ошибка сохранения: ' + e.message);
-    endSave(false);
-  }
+  } catch (e) { console.warn(e); toast('Ошибка сохранения: ' + e.message); endSave(false); }
 }
 
 async function logAction(action) {
-  try {
-    const { error } = await sb.from('logs').insert({ user_id: currentUser.id, action });
-    if (error) console.warn('logAction:', error.message);
-  } catch (e) {
-    console.warn('logAction exception:', e);
-  }
+  try { await sb.from('logs').insert({ user_id: currentUser.id, action }); } catch (e) {}
 }
 
 function persistChange(desc = '') {
@@ -497,31 +426,20 @@ function persistChange(desc = '') {
 }
 
 function pushUndo(desc) {
-  undoStack.push({
-    date: dateInput.value,
-    data: structuredClone(absences[dateInput.value] || {}),
-    desc
-  });
+  undoStack.push({ date: dateInput.value, data: structuredClone(absences[dateInput.value] || {}), desc });
   if (undoStack.length > 20) undoStack.shift();
 }
 
 async function undoLast() {
   if (!undoStack.length) { toast('Нечего отменять'); return; }
   const state = undoStack.pop();
-
   if (state.type === 'interval') {
     const restoredDates = state.dates || [];
-    for (const item of restoredDates) {
-      absences[item.date] = structuredClone(item.data || {});
-    }
-    for (const item of restoredDates) {
-      await saveAbsencesForDay(item.date);
-    }
+    for (const item of restoredDates) absences[item.date] = structuredClone(item.data || {});
+    for (const item of restoredDates) await saveAbsencesForDay(item.date);
     const restoredDateSet = new Set(restoredDates.map(item => item.date));
     if (!restoredDateSet.has(dateInput.value) && restoredDates.length) {
-      dateInput.value = restoredDates[0].date;
-      expandedRows.clear();
-      selectedStudents.clear();
+      dateInput.value = restoredDates[0].date; expandedRows.clear(); selectedStudents.clear();
     }
     updateBulkPanel();
   } else {
@@ -529,172 +447,99 @@ async function undoLast() {
     if (dateInput.value !== state.date) dateInput.value = state.date;
     await saveAbsencesForDay(state.date);
   }
-  render();
-  toast(`Отменено: ${state.desc}`);
+  render(); toast(`Отменено: ${state.desc}`);
 }
 
 function updateHeader() {
   const safeClass = (className || '').trim();
-  
-  // Обновляем старый элемент в сайдбаре (если он есть)
   const classEl = document.getElementById('sideClassName');
   if (classEl) classEl.textContent = safeClass ? `${safeClass} класс` : 'Класс не указан';
-  
-  // Обновляем новый чип в верхней панели
   const uxChip = document.getElementById('uxClassIndicator');
-  if (uxChip) {
-    // Очищаем содержимое, но оставляем зеленую точку
-    uxChip.innerHTML = '<span class="ux-indicator-dot"></span>' + (safeClass ? `${safeClass} класс` : 'Класс не указан');
-  }
-
+  if (uxChip) uxChip.innerHTML = '<span class="ux-indicator-dot"></span>' + (safeClass ? `${safeClass} класс` : 'Класс не указан');
   document.title = safeClass ? `Посещаемость ${safeClass}` : 'Посещаемость';
 }
-function onDateChange() {
-  expandedRows.clear();
-  selectedStudents.clear();
-  updateBulkPanel();
-  render();
-}
 
+function onDateChange() { expandedRows.clear(); selectedStudents.clear(); updateBulkPanel(); render(); }
 function changeDate(days) {
-  const d = new Date(dateInput.value + 'T00:00:00');
-  d.setDate(d.getDate() + days);
-  dateInput.value = formatDate(d);
-  expandedRows.clear();
-  selectedStudents.clear();
-  updateBulkPanel();
-  render();
+  const d = new Date(dateInput.value + 'T00:00:00'); d.setDate(d.getDate() + days);
+  dateInput.value = formatDate(d); expandedRows.clear(); selectedStudents.clear(); updateBulkPanel(); render();
 }
-
 function setToday() {
   const today = todayStr();
   dateInput.value = isEducationDay(today) ? today : getLastEducationDay(today);
-  expandedRows.clear();
-  selectedStudents.clear();
-  updateBulkPanel();
-  render();
+  expandedRows.clear(); selectedStudents.clear(); updateBulkPanel(); render();
 }
-
 function getLastEducationDay(fromDateStr) {
   let d = new Date(fromDateStr + 'T00:00:00');
   for (let i = 0; i < 30; i++) {
-    const str = formatDate(d);
-    if (isEducationDay(str)) return str;
+    const str = formatDate(d); if (isEducationDay(str)) return str;
     d.setDate(d.getDate() - 1);
   }
-  return fromDateStr; // запасной вариант
+  return fromDateStr;
 }
-
-function collapseAllRows() {
-  expandedRows.clear();
-  render();
-  toast('Все детали свёрнуты');
-}
+function collapseAllRows() { expandedRows.clear(); render(); toast('Все детали свёрнуты'); }
 
 function renderMiniCalendar() {
   miniCalEl.innerHTML = '';
   const today = new Date();
   for (let i = -10; i <= 10; i++) {
-    const d = new Date(today);
-    d.setDate(today.getDate() + i);
-    const str = formatDate(d);
-    const dow = d.getDay();
-    const sp = getSpecialDay(str);
+    const d = new Date(today); d.setDate(today.getDate() + i);
+    const str = formatDate(d); const dow = d.getDay(); const sp = getSpecialDay(str);
     const isWeekend = (dow === 0 || dow === 6) && !sp;
     const el = document.createElement('div');
-    el.className = 'mini-day'
-      + (str === dateInput.value ? ' active' : '')
-      + (isWeekend ? ' is-weekend' : '');
+    el.className = 'mini-day' + (str === dateInput.value ? ' active' : '') + (isWeekend ? ' is-weekend' : '');
     if (sp) el.classList.add('is-special');
     if (absences[str] && Object.keys(absences[str]).length > 0) el.classList.add('has-absences');
     el.innerHTML = `<span class="mini-dow">${['Вс','Пн','Вт','Ср','Чт','Пт','Сб'][dow]}</span><span class="mini-num">${d.getDate()}</span><span class="mini-dot"></span>`;
     if (!isWeekend) {
-      el.onclick = () => {
-        dateInput.value = str;
-        expandedRows.clear();
-        selectedStudents.clear();
-        updateBulkPanel();
-        render();
-      };
+      el.onclick = () => { dateInput.value = str; expandedRows.clear(); selectedStudents.clear(); updateBulkPanel(); render(); };
     }
     miniCalEl.appendChild(el);
   }
-    // Прокручиваем календарь так, чтобы активный день был по центру
   setTimeout(() => {
     const activeDay = miniCalEl.querySelector('.mini-day.active');
     if (activeDay) {
       const containerWidth = miniCalEl.offsetWidth;
       const activeDayLeft = activeDay.offsetLeft;
       const activeDayWidth = activeDay.offsetWidth;
-      
-      // Вычисляем позицию для центрирования
       const scrollTo = activeDayLeft - (containerWidth / 2) + (activeDayWidth / 2);
-      
-      miniCalEl.scrollTo({
-        left: scrollTo,
-        behavior: 'smooth' // Плавная прокрутка
-      });
+      miniCalEl.scrollTo({ left: scrollTo, behavior: 'smooth' });
     }
-  }, 50); // Небольшая задержка, чтобы DOM успел отрисоваться
+  }, 50);
 }
 
 function render() {
   renderMiniCalendar();
-
   const day = getDayData();
   const total = students.length;
   const absentCount = Object.keys(day).length;
   statsEl.innerHTML = `
-    <div class="stat total">
-      <div class="label">Всего</div>
-      <div class="value">${total}</div>
-    </div>
-    <div class="stat present">
-      <div class="label">Присутствуют</div>
-      <div class="value">${total - absentCount}</div>
-    </div>
-    <div class="stat absent">
-      <div class="label">Отсутствуют</div>
-      <div class="value">${absentCount}</div>
-    </div>`;
+    <div class="stat total"><div class="label">Всего</div><div class="value">${total}</div></div>
+    <div class="stat present"><div class="label">Присутствуют</div><div class="value">${total - absentCount}</div></div>
+    <div class="stat absent"><div class="label">Отсутствуют</div><div class="value">${absentCount}</div></div>`;
 
   const today = todayStr();
   const currentQ = quarters.find(q => today >= q.from && today <= q.to) || quarters[0] || null;
   const eduDaysThisQuarter = currentQ ? getEducationDays(currentQ.from, today) : [];
   const warnNames = [];
   
-  // Ищем учеников с 5+ днями (суммарно) по причине "Заявление родителей (по здоровью)"
   students.forEach((name, i) => {
-    if (countDaysWithReason(i, eduDaysThisQuarter, 'parents_health') >= 5) {
-      warnNames.push(name);
-    }
+    if (countDaysWithReason(i, eduDaysThisQuarter, 'parents_health') >= 5) warnNames.push(name);
   });
   
   const banner = document.getElementById('warningBanner');
   if (warnNames.length > 0) {
     banner.classList.add('visible');
-    document.getElementById('warningText').textContent =
-      `У ${warnNames.length} учеников 5+ дней пропусков по заявлению (здоровье) за текущую четверть: ${warnNames.join(', ')}`;
-  } else {
-    banner.classList.remove('visible');
-  }
+    document.getElementById('warningText').textContent = `У ${warnNames.length} учеников 5+ дней пропусков по заявлению (здоровье) за текущую четверть: ${warnNames.join(', ')}`;
+  } else { banner.classList.remove('visible'); }
 
   const frag = document.createDocumentFragment();
-
   if (students.length === 0) {
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td colspan="5">
-      <div class="empty-state">
-        <span class="emoji">📭</span>Список класса пуст. Добавьте учеников через «Редактировать список».
-      </div>
-    </td>`;
-    frag.appendChild(tr);
-    tbody.innerHTML = '';
-    tbody.appendChild(frag);
-    return;
+    tr.innerHTML = `<td colspan="5"><div class="empty-state"><span class="emoji">📭</span>Список класса пуст. Добавьте учеников через «Редактировать список».</div></td>`;
+    frag.appendChild(tr); tbody.innerHTML = ''; tbody.appendChild(frag); return;
   }
 
-  const lessonsToday = getDayLessons(dateInput.value);
   const sp = getSpecialDay(dateInput.value);
   let renderedCount = 0;
 
@@ -704,6 +549,9 @@ function render() {
 
     const cur = day[i] || null;
     const curReason = cur?.reason || '';
+    // ВАЖНО: Уроки для конкретного ученика с учетом его группы
+    const lessonsToday = getDayLessons(dateInput.value, studentIds[i]); 
+
     const tr = document.createElement('tr');
     if (curReason) tr.className = 'r-' + curReason;
 
@@ -730,248 +578,137 @@ function render() {
             `<option value="${val}"${cur.medical_reason === val ? ' selected' : ''}>${label}</option>`
           ).join('');
           fieldsHtml += `<select class="medical-reason-select" data-index="${i}" style="margin-bottom: 8px; padding: 7px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text); font-family: inherit; font-size: 12px; width: 100%; outline: none;">
-            <option value="">-- Уточните причину справки (необязательно) --</option>
-            ${medOptions}
+            <option value="">-- Уточните причину справки (необязательно) --</option>${medOptions}
           </select>`;
         }
-
         fieldsHtml += `<input type="text" class="comment-input" data-index="${i}" placeholder="Комментарий (справка №...)" value="${escapeHtml(cur.comment || '')}">`;
-        
-        detailHtml = `<div class="row-details">
-          ${fieldsHtml}
-          <div class="row-details-actions">
-            <button class="btn-collapse-row" data-index="${i}">✓ Свернуть</button>
-          </div>
-        </div>`;
+        detailHtml = `<div class="row-details">${fieldsHtml}<div class="row-details-actions"><button class="btn-collapse-row" data-index="${i}">✓ Свернуть</button></div></div>`;
       } else {
         let hint = '';
         if (lessonsToday > 0) {
           hint = cur.full ? `весь день (${lessonsToday} ур.)` : `уроки ${cur.from}–${cur.to}`;
           if (sp) hint += ' 🔔';
-        } else {
-          hint = 'нерабочий день';
-        }
-        const commentIcon = cur.comment
-          ? ` · 📝 ${escapeHtml(cur.comment.substring(0, 30))}${cur.comment.length > 30 ? '…' : ''}`
-          : '';
-        detailHtml = `<div class="compact-info">
-          <span class="compact-hint">${hint}${commentIcon}</span>
-          <button class="btn-expand-row" data-index="${i}">✎ Детали</button>
-        </div>`;
+        } else { hint = 'нерабочий день'; }
+        const commentIcon = cur.comment ? ` · 📝 ${escapeHtml(cur.comment.substring(0, 30))}${cur.comment.length > 30 ? '…' : ''}` : '';
+        detailHtml = `<div class="compact-info"><span class="compact-hint">${hint}${commentIcon}</span><button class="btn-expand-row" data-index="${i}">✎ Детали</button></div>`;
       }
     }
 
     const hasNote = studentNotes[studentIds[i]];
-    const noteIcon = hasNote
-      ? `<span class="note-icon" title="${escapeHtml(hasNote)}" data-index="${i}">📝</span>`
-      : '';
+    const noteIcon = hasNote ? `<span class="note-icon" title="${escapeHtml(hasNote)}" data-index="${i}">📝</span>` : '';
 
     tr.innerHTML = `
-      <td>
-        <input type="checkbox" class="chk-student" data-index="${i}" ${selectedStudents.has(i) ? 'checked' : ''}>
-      </td>
+      <td><input type="checkbox" class="chk-student" data-index="${i}" ${selectedStudents.has(i) ? 'checked' : ''}></td>
       <td style="color:var(--muted);font-weight:600;">${i + 1}</td>
-      <td class="student-name">
-        <span class="name-text" data-index="${i}">${escapeHtml(name)}</span>${noteIcon}
-        <button class="btn-quick-interval" data-index="${i}" title="Добавить интервал">📅</button>
-      </td>
-      <td>
-        <span class="badge ${curReason ? 'absent' : 'present'}">${curReason ? '🔴 Отсутствует' : '🟢 Присутствует'}</span>
-      </td>
-      <td>
-        <select class="reason-select ${curReason ? 'v-' + curReason : ''}" data-index="${i}">${options}</select>
-        ${detailHtml}
-      </td>`;
+      <td class="student-name"><span class="name-text" data-index="${i}">${escapeHtml(name)}</span>${noteIcon}<button class="btn-quick-interval" data-index="${i}" title="Добавить интервал">📅</button></td>
+      <td><span class="badge ${curReason ? 'absent' : 'present'}">${curReason ? '🔴 Отсутствует' : '🟢 Присутствует'}</span></td>
+      <td><select class="reason-select ${curReason ? 'v-' + curReason : ''}" data-index="${i}">${options}</select>${detailHtml}</td>`;
     frag.appendChild(tr);
   });
 
   if (renderedCount === 0) {
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td colspan="5">
-      <div class="empty-state">
-        <span class="emoji">🔍</span>Ничего не найдено по запросу
-      </div>
-    </td>`;
+    tr.innerHTML = `<td colspan="5"><div class="empty-state"><span class="emoji">🔍</span>Ничего не найдено по запросу</div></td>`;
     frag.appendChild(tr);
   }
-
-  tbody.innerHTML = '';
-  tbody.appendChild(frag);
+  tbody.innerHTML = ''; tbody.appendChild(frag);
 }
 
 function setupTableDelegation() {
-    tbody.addEventListener('change', e => {
+  tbody.addEventListener('change', e => {
     const t = e.target;
-    if (t.classList.contains('chk-student')) {
-      toggleSelect(parseInt(t.dataset.index, 10));
-    } else if (t.classList.contains('reason-select')) {
+    if (t.classList.contains('chk-student')) toggleSelect(parseInt(t.dataset.index, 10));
+    else if (t.classList.contains('reason-select')) {
       const idx = parseInt(t.dataset.index, 10);
-      const reason = t.value;
-      setReason(idx, reason);
-      if (!reason) expandedRows.delete(idx);
+      setReason(idx, t.value);
+      if (!t.value) expandedRows.delete(idx);
       render();
-    } else if (t.classList.contains('medical-reason-select')) {
-      const idx = parseInt(t.dataset.index, 10);
-      setMedicalReason(idx, t.value);
-    } else if (t.classList.contains('partial-from') || t.classList.contains('partial-to')) {
+    } else if (t.classList.contains('medical-reason-select')) setMedicalReason(parseInt(t.dataset.index, 10), t.value);
+    else if (t.classList.contains('partial-from') || t.classList.contains('partial-to')) {
       const idx = parseInt(t.dataset.index, 10);
       const fromEl = tbody.querySelector(`.partial-from[data-index="${idx}"]`);
       const toEl = tbody.querySelector(`.partial-to[data-index="${idx}"]`);
-      const f = fromEl ? fromEl.value : '';
-      const tt = toEl ? toEl.value : '';
+      const f = fromEl ? fromEl.value : '', tt = toEl ? toEl.value : '';
       setPartial(idx, f === '' ? null : parseInt(f, 10), tt === '' ? null : parseInt(tt, 10));
       render();
-    } else if (t.classList.contains('comment-input')) {
-      setComment(parseInt(t.dataset.index, 10), t.value);
-    }
+    } else if (t.classList.contains('comment-input')) setComment(parseInt(t.dataset.index, 10), t.value);
   });
 
   tbody.addEventListener('click', e => {
     const t = e.target;
-    if (t.classList.contains('btn-expand-row')) {
-      expandedRows.add(parseInt(t.dataset.index, 10));
-      render();
-    } else if (t.classList.contains('btn-collapse-row')) {
-      expandedRows.delete(parseInt(t.dataset.index, 10));
-      render();
-    } else if (t.classList.contains('btn-quick-interval')) {
-      e.stopPropagation();
-      openIntervalModal(parseInt(t.dataset.index, 10));
-    } else if (t.classList.contains('name-text') || t.classList.contains('note-icon')) {
-      const idx = parseInt(t.dataset.index, 10);
-      if (!Number.isNaN(idx)) openStudentStats(idx);
+    if (t.classList.contains('btn-expand-row')) { expandedRows.add(parseInt(t.dataset.index, 10)); render(); }
+    else if (t.classList.contains('btn-collapse-row')) { expandedRows.delete(parseInt(t.dataset.index, 10)); render(); }
+    else if (t.classList.contains('btn-quick-interval')) { e.stopPropagation(); openIntervalModal(parseInt(t.dataset.index, 10)); }
+    else if (t.classList.contains('name-text') || t.classList.contains('note-icon')) {
+      const idx = parseInt(t.dataset.index, 10); if (!Number.isNaN(idx)) openStudentStats(idx);
     }
   });
 }
 
 function markAllPresent() {
   if (!confirm('Отметить всех присутствующими? Все отметки за этот день будут удалены.')) return;
-  pushUndo('Сброс дня');
-  absences[dateInput.value] = {};
-  expandedRows.clear();
-  selectedStudents.clear();
-  updateBulkPanel();
-  persistChange(`Сброс дня на ${formatDateRu(dateInput.value)}`);
-  render();
+  pushUndo('Сброс дня'); absences[dateInput.value] = {};
+  expandedRows.clear(); selectedStudents.clear(); updateBulkPanel();
+  persistChange(`Сброс дня на ${formatDateRu(dateInput.value)}`); render();
 }
 
 function copyYesterday() {
-  const cur = new Date(dateInput.value + 'T00:00:00');
-  cur.setDate(cur.getDate() - 1);
-  const yStr = formatDate(cur);
-  const yData = absences[yStr];
-  if (!yData || Object.keys(yData).length === 0) {
-    toast('Вчера отсутствующих не было');
-    return;
-  }
-  pushUndo('Копирование со вчера');
-  absences[dateInput.value] = structuredClone(yData);
-  expandedRows.clear();
-  selectedStudents.clear();
-  updateBulkPanel();
-  persistChange(`Копирование со вчера на ${formatDateRu(dateInput.value)}`);
-  render();
+  const cur = new Date(dateInput.value + 'T00:00:00'); cur.setDate(cur.getDate() - 1);
+  const yStr = formatDate(cur); const yData = absences[yStr];
+  if (!yData || Object.keys(yData).length === 0) { toast('Вчера отсутствующих не было'); return; }
+  pushUndo('Копирование со вчера'); absences[dateInput.value] = structuredClone(yData);
+  expandedRows.clear(); selectedStudents.clear(); updateBulkPanel();
+  persistChange(`Копирование со вчера на ${formatDateRu(dateInput.value)}`); render();
   toast('Отметки скопированы со вчерашнего дня');
 }
 
 async function copyToWeek() {
   const yData = absences[dateInput.value];
-  if (!yData || Object.keys(yData).length === 0) {
-    toast('Сегодня отсутствующих нет');
-    return;
-  }
-
-  let d = new Date(dateInput.value + 'T00:00:00');
-  const daysToCopy = [];
-  const savedStates = [];
+  if (!yData || Object.keys(yData).length === 0) { toast('Сегодня отсутствующих нет'); return; }
+  let d = new Date(dateInput.value + 'T00:00:00'); const daysToCopy = []; const savedStates = [];
   for (let i = 1; i <= 5; i++) {
-    d.setDate(d.getDate() + 1);
-    const str = formatDate(d);
+    d.setDate(d.getDate() + 1); const str = formatDate(d);
     if (!isEducationDay(str)) continue;
-    daysToCopy.push(str);
-    savedStates.push({ date: str, data: structuredClone(absences[str] || {}) });
+    daysToCopy.push(str); savedStates.push({ date: str, data: structuredClone(absences[str] || {}) });
   }
-
-  if (!daysToCopy.length) {
-    toast('В ближайшие 5 дней нет учебных дней');
-    return;
-  }
-
-  undoStack.push({
-    type: 'interval',
-    desc: 'Копирование на 5 дней',
-    dates: savedStates
-  });
+  if (!daysToCopy.length) { toast('В ближайшие 5 дней нет учебных дней'); return; }
+  undoStack.push({ type: 'interval', desc: 'Копирование на 5 дней', dates: savedStates });
   if (undoStack.length > 20) undoStack.shift();
-
-  for (const str of daysToCopy) {
-    absences[str] = structuredClone(yData);
-  }
-  render();
-  await Promise.all(daysToCopy.map(saveAbsencesForDay));
+  for (const str of daysToCopy) absences[str] = structuredClone(yData);
+  render(); await Promise.all(daysToCopy.map(saveAbsencesForDay));
   logAction(`Копирование на 5 дней с ${formatDateRu(dateInput.value)}`);
   toast(`Скопировано на ${daysToCopy.length} учебных дней`);
 }
 
 function toggleSelectAll(chk) {
-  if (chk.checked) {
-    students.forEach((_, i) => selectedStudents.add(i));
-  } else {
-    selectedStudents.clear();
-  }
-  updateBulkPanel();
-  render();
+  if (chk.checked) students.forEach((_, i) => selectedStudents.add(i));
+  else selectedStudents.clear();
+  updateBulkPanel(); render();
 }
-
 function toggleSelect(idx) {
-  if (selectedStudents.has(idx)) selectedStudents.delete(idx);
-  else selectedStudents.add(idx);
-  updateBulkPanel();
-  render();
+  if (selectedStudents.has(idx)) selectedStudents.delete(idx); else selectedStudents.add(idx);
+  updateBulkPanel(); render();
 }
 
 function updateBulkPanel() {
-  const panel = document.getElementById('bulkPanel');
-  const info = document.getElementById('bulkInfo');
+  const panel = document.getElementById('bulkPanel'); const info = document.getElementById('bulkInfo');
   if (selectedStudents.size > 0) {
-    panel.classList.add('visible');
-    info.textContent = `Выбрано: ${selectedStudents.size}`;
+    panel.classList.add('visible'); info.textContent = `Выбрано: ${selectedStudents.size}`;
     const sel = document.getElementById('bulkReason');
     if (sel.options.length <= 1) {
-      sel.innerHTML = '<option value="">-- Причина --</option>' +
-        Object.entries(REASONS).filter(([k]) => k)
-          .map(([k, r]) => `<option value="${k}">${r.emoji} ${r.label}</option>`).join('');
+      sel.innerHTML = '<option value="">-- Причина --</option>' + Object.entries(REASONS).filter(([k]) => k).map(([k, r]) => `<option value="${k}">${r.emoji} ${r.label}</option>`).join('');
     }
-  } else {
-    panel.classList.remove('visible');
-  }
+  } else panel.classList.remove('visible');
 }
-
-function clearSelection() {
-  selectedStudents.clear();
-  document.getElementById('selectAll').checked = false;
-  updateBulkPanel();
-  render();
-}
-
+function clearSelection() { selectedStudents.clear(); document.getElementById('selectAll').checked = false; updateBulkPanel(); render(); }
 async function applyBulkReason() {
   const reason = document.getElementById('bulkReason').value;
-  if (!reason) {
-    toast('Выберите причину');
-    return;
-  }
-  pushUndo('Массовое изменение статуса');
-  const d = dateInput.value;
+  if (!reason) { toast('Выберите причину'); return; }
+  pushUndo('Массовое изменение статуса'); const d = dateInput.value;
   if (!absences[d]) absences[d] = {};
-  selectedStudents.forEach(idx => {
-    absences[d][idx] = { reason, full: true, comment: '', medical_reason: '' };
-  });
+  selectedStudents.forEach(idx => absences[d][idx] = { reason, full: true, comment: '', medical_reason: '' });
   persistChange(`Массовое изменение статуса (${REASONS[reason]?.label || reason})`);
-  expandedRows.clear();
-  selectedStudents.clear();
-  updateBulkPanel();
-  render();
-  toast('Статус обновлён для выбранных');
+  expandedRows.clear(); selectedStudents.clear(); updateBulkPanel(); render(); toast('Статус обновлён для выбранных');
 }
 
 function openStudentStats(idx) {
@@ -979,47 +716,37 @@ function openStudentStats(idx) {
   const note = studentNotes[studentIds[idx]] || '';
   document.getElementById('statsTitle').textContent = name;
 
-  let totalAbs = 0;
-  const byReason = {};
-  REASON_KEYS.forEach(k => byReason[k] = 0);
+  let totalAbs = 0; const byReason = {}; REASON_KEYS.forEach(k => byReason[k] = 0);
   Object.values(absences).forEach(day => {
-    const a = day[idx];
-    if (a && a.reason) {
-      totalAbs++;
-      byReason[a.reason] = (byReason[a.reason] || 0) + 1;
-    }
+    const a = day[idx]; if (a && a.reason) { totalAbs++; byReason[a.reason] = (byReason[a.reason] || 0) + 1; }
   });
 
-  const labels = {
-    medical: 'Мед. справка', 
-    health_admin: 'По состоянию здоровья (с разр.)', 
-    parents_family: 'Заявление родителей (семейные)',
-    parents_health: 'Заявление родителей (по здоровью)',
-    survey: 'Посещение врача',
-    sport: 'Соревнования',
-    cultural: 'Культ-массовые',
-    ozdorovlenie: 'Санаторий',
-    norespect: 'Без уважительной',
-    other: 'Иная'
-  };
-  const rowsHtml = REASON_KEYS.filter(k => byReason[k] > 0).map(k =>
-    `<div class="stats-bar-item"><span>${labels[k]}</span><b>${byReason[k]}</b></div>`
-  ).join('');
+  const labels = { medical: 'Мед. справка', health_admin: 'По состоянию здоровья (с разр.)', parents_family: 'Заявление родителей (семейные)', parents_health: 'Заявление родителей (по здоровью)', survey: 'Посещение врача', sport: 'Соревнования', cultural: 'Культ-массовые', ozdorovlenie: 'Санаторий', norespect: 'Без уважительной', other: 'Иная' };
+  const rowsHtml = REASON_KEYS.filter(k => byReason[k] > 0).map(k => `<div class="stats-bar-item"><span>${labels[k]}</span><b>${byReason[k]}</b></div>`).join('');
+
+  // Блок выбора профильной группы
+  const studentGroupId = studentGroups[studentIds[idx]] || '';
+  const groupHtml = (isProfiled && classGroups.length) ? `
+    <div class="form-group" style="margin-top:15px;">
+      <label>Профильная группа</label>
+      <select id="studentGroupSelect" style="width:100%; padding:10px; border-radius:10px; border:1px solid var(--border); background:var(--input-bg); color:var(--text);">
+        <option value="">Без группы (общее расписание)</option>
+        ${classGroups.map(g => `<option value="${g.id}" ${studentGroupId === g.id ? 'selected' : ''}>${escapeHtml(g.name)}</option>`).join('')}
+      </select>
+    </div>
+  ` : '';
 
   const html = `
-    <p class="hint" style="margin-bottom:12px;">
-      Всего пропусков (дней): <b style="color:var(--danger); font-size:16px;">${totalAbs}</b>
-    </p>
-    <div class="stats-bar-student">
-      ${rowsHtml || '<div class="empty-state">Пропусков нет</div>'}
-    </div>
-    <div class="form-group" style="margin-top:20px;">
+    <p class="hint" style="margin-bottom:12px;">Всего пропусков (дней): <b style="color:var(--danger); font-size:16px;">${totalAbs}</b></p>
+    <div class="stats-bar-student">${rowsHtml || '<div class="empty-state">Пропусков нет</div>'}</div>
+    ${groupHtml}
+    <div class="form-group" style="margin-top:15px;">
       <label>Заметка к ученику (видна только вам)</label>
       <textarea id="studentNoteInput" style="min-height:80px;" placeholder="Например: аллергия на физкультуру...">${escapeHtml(note)}</textarea>
     </div>
     <div class="modal-actions">
       <button class="btn-secondary" onclick="document.getElementById('studentStatsBackdrop').classList.remove('open')">Закрыть</button>
-      <button class="btn-primary" onclick="saveStudentNote(${idx})">Сохранить заметку</button>
+      <button class="btn-primary" onclick="saveStudentNote(${idx})">Сохранить</button>
     </div>`;
   document.getElementById('studentStatsContent').innerHTML = html;
   document.getElementById('studentStatsBackdrop').classList.add('open');
@@ -1027,32 +754,30 @@ function openStudentStats(idx) {
 
 async function saveStudentNote(idx) {
   const note = document.getElementById('studentNoteInput').value.trim();
+  const groupSelect = document.getElementById('studentGroupSelect');
+  const groupId = groupSelect ? (groupSelect.value || null) : null;
   const sid = studentIds[idx];
-  const { error } = await sb.from('students').update({ note }).eq('id', sid);
-  if (error) {
-    toast(error.message);
-    return;
-  }
-  if (note) studentNotes[sid] = note;
-  else delete studentNotes[sid];
+
+  const { error } = await sb.from('students').update({ note, group_id: groupId }).eq('id', sid);
+  if (error) { toast(error.message); return; }
+  
+  if (note) studentNotes[sid] = note; else delete studentNotes[sid];
+  if (groupId) studentGroups[sid] = groupId; else delete studentGroups[sid];
+  
   document.getElementById('studentStatsBackdrop').classList.remove('open');
-  toast('Заметка сохранена');
-  logAction(`Сохранена заметка для ${students[idx]}`);
+  toast('Сохранено');
+  render();
+  logAction(`Обновлены настройки ученика ${students[idx]}`);
 }
 
 function openIntervalModal(prefillIdx) {
-  if (students.length === 0) {
-    toast('Сначала добавьте учеников');
-    return;
-  }
+  if (students.length === 0) { toast('Сначала добавьте учеников'); return; }
   const sel = document.getElementById('intervalStudent');
   sel.innerHTML = students.map((name, i) => `<option value="${i}">${escapeHtml(name)}</option>`).join('');
-  if (typeof prefillIdx === 'number' && prefillIdx >= 0 && prefillIdx < students.length) {
-    sel.value = prefillIdx;
-  }
+  if (typeof prefillIdx === 'number' && prefillIdx >= 0 && prefillIdx < students.length) sel.value = prefillIdx;
+  
   const reasonSel = document.getElementById('intervalReason');
-  reasonSel.innerHTML = Object.entries(REASONS).filter(([k]) => k)
-    .map(([k, r]) => `<option value="${k}">${r.emoji} ${r.label}</option>`).join('');
+  reasonSel.innerHTML = Object.entries(REASONS).filter(([k]) => k).map(([k, r]) => `<option value="${k}">${r.emoji} ${r.label}</option>`).join('');
   
   const medWrap = document.getElementById('intervalMedReasonWrap');
   const medSel = document.getElementById('intervalMedReason');
@@ -1073,9 +798,7 @@ function openIntervalModal(prefillIdx) {
   setTimeout(() => document.getElementById('intervalFrom').focus(), 100);
 }
 
-function closeIntervalModal() {
-  document.getElementById('intervalBackdrop').classList.remove('open');
-}
+function closeIntervalModal() { document.getElementById('intervalBackdrop').classList.remove('open'); }
 
 async function saveInterval() {
   const idx = parseInt(document.getElementById('intervalStudent').value, 10);
@@ -1097,33 +820,16 @@ async function saveInterval() {
   if (!affected.length) { alert('В выбранном диапазоне не оказалось учебных дней'); return; }
 
   const desc = `Интервал для ${students[idx]} (${formatDateRu(from)}–${formatDateRu(to)})`;
-  undoStack.push({
-    type: 'interval',
-    desc,
-    dates: affected.map(date => ({
-      date,
-      data: structuredClone(absences[date] || {})
-    }))
-  });
+  undoStack.push({ type: 'interval', desc, dates: affected.map(date => ({ date, data: structuredClone(absences[date] || {}) })) });
   if (undoStack.length > 20) undoStack.shift();
 
   for (const d of affected) {
     if (!absences[d]) absences[d] = {};
-    absences[d][idx] = { 
-      reason, 
-      full: true, 
-      comment, 
-      medical_reason: reason === 'medical' ? medReason : '' 
-    };
+    absences[d][idx] = { reason, full: true, comment, medical_reason: reason === 'medical' ? medReason : '' };
   }
-  closeIntervalModal();
-  expandedRows.clear();
-  selectedStudents.clear();
-  updateBulkPanel();
-  render();
+  closeIntervalModal(); expandedRows.clear(); selectedStudents.clear(); updateBulkPanel(); render();
   for (const d of affected) await saveAbsencesForDay(d);
-  logAction(desc);
-  toast(`Добавлено ${affected.length} дн.`);
+  logAction(desc); toast(`Добавлено ${affected.length} дн.`);
 }
 
 function getDayData() {
@@ -1136,24 +842,11 @@ function setReason(idx, reason) {
   const d = dateInput.value;
   if (!absences[d]) absences[d] = {};
   const prev = absences[d][idx];
-  if (!reason) {
-    delete absences[d][idx];
-  } else if (prev && prev.reason && prev.full === false) {
-    absences[d][idx] = { 
-      reason, 
-      full: false, 
-      from: prev.from, 
-      to: prev.to, 
-      comment: prev.comment,
-      medical_reason: reason === 'medical' ? (prev.medical_reason || '') : ''
-    };
+  if (!reason) { delete absences[d][idx]; } 
+  else if (prev && prev.reason && prev.full === false) {
+    absences[d][idx] = { reason, full: false, from: prev.from, to: prev.to, comment: prev.comment, medical_reason: reason === 'medical' ? (prev.medical_reason || '') : '' };
   } else {
-    absences[d][idx] = { 
-      reason, 
-      full: true, 
-      comment: prev ? prev.comment : '',
-      medical_reason: reason === 'medical' ? (prev?.medical_reason || '') : ''
-    };
+    absences[d][idx] = { reason, full: true, comment: prev ? prev.comment : '', medical_reason: reason === 'medical' ? (prev?.medical_reason || '') : '' };
   }
   persistChange(`${formatDateRu(d)}: ${students[idx]} — ${REASONS[reason]?.label || 'Присутствует'}`);
 }
@@ -1163,7 +856,8 @@ function setPartial(idx, from, to) {
   const d = dateInput.value;
   const cur = absences[d]?.[idx];
   if (!cur || !cur.reason) return;
-  const lessonsToday = getDayLessons(d);
+  // Берем уроки для конкретного ученика!
+  const lessonsToday = getDayLessons(d, studentIds[idx]);
   const fOk = Number.isFinite(from) && from >= 1;
   const tOk = Number.isFinite(to) && to >= 1 && to >= from;
   if (!fOk || !tOk || (lessonsToday > 0 && from === 1 && to === lessonsToday)) {
@@ -1185,10 +879,7 @@ function setComment(idx, text) {
 function setMedicalReason(idx, medReason) {
   pushUndo('Уточнение мед. справки');
   const d = dateInput.value;
-  if (absences[d]?.[idx]) {
-    absences[d][idx].medical_reason = medReason;
-    persistChange();
-  }
+  if (absences[d]?.[idx]) { absences[d][idx].medical_reason = medReason; persistChange(); }
 }
 
 function openEditList() {
@@ -1198,75 +889,41 @@ function openEditList() {
 
 async function saveClassList() {
   const lines = document.getElementById('classListEditor').value.split('\n').map(s => s.trim()).filter(Boolean);
-  if (!lines.length) {
-    alert('Список пуст');
-    return;
-  }
+  if (!lines.length) { alert('Список пуст'); return; }
 
   const { data: existing, error: exErr } = await sb.from('students').select('id, position').eq('class_id', currentClassId).order('position');
-  if (exErr) {
-    toast('Ошибка загрузки списка: ' + exErr.message);
-    return;
-  }
+  if (exErr) { toast('Ошибка загрузки списка: ' + exErr.message); return; }
+  
   const existingByPos = {};
   (existing || []).forEach(e => { existingByPos[e.position] = e.id; });
 
-  const toUpdate = [];
-  const toInsert = [];
+  const toUpdate = [], toInsert = [];
   for (let i = 0; i < lines.length; i++) {
-    if (existingByPos[i]) {
-      toUpdate.push({ id: existingByPos[i], full_name: lines[i], position: i });
-    } else {
-      toInsert.push({ class_id: currentClassId, full_name: lines[i], position: i });
-    }
+    if (existingByPos[i]) toUpdate.push({ id: existingByPos[i], full_name: lines[i], position: i });
+    else toInsert.push({ class_id: currentClassId, full_name: lines[i], position: i });
   }
 
   const extras = (existing || []).filter(e => e.position >= lines.length).map(e => e.id);
 
   try {
-    if (toUpdate.length) {
-      const { error } = await sb.from('students').upsert(toUpdate);
-      if (error) throw error;
-    }
-    if (toInsert.length) {
-      const { error } = await sb.from('students').insert(toInsert);
-      if (error) throw error;
-    }
-    if (extras.length) {
-      const { error } = await sb.from('students').delete().in('id', extras);
-      if (error) throw error;
-    }
-  } catch (e) {
-    toast('Ошибка сохранения списка: ' + e.message);
-    return;
-  }
+    if (toUpdate.length) { const { error } = await sb.from('students').upsert(toUpdate); if (error) throw error; }
+    if (toInsert.length) { const { error } = await sb.from('students').insert(toInsert); if (error) throw error; }
+    if (extras.length) { const { error } = await sb.from('students').delete().in('id', extras); if (error) throw error; }
+  } catch (e) { toast('Ошибка сохранения списка: ' + e.message); return; }
 
   document.getElementById('modalBackdrop').classList.remove('open');
-  await loadAll();
-  expandedRows.clear();
-  selectedStudents.clear();
-  updateBulkPanel();
-  render();
-  toast('Список сохранён');
-  logAction('Изменён список класса');
+  await loadAll(); expandedRows.clear(); selectedStudents.clear(); updateBulkPanel(); render();
+  toast('Список сохранён'); logAction('Изменён список класса');
 }
 
-function getEducationDays(from, to) {
-  return dateRange(from, to).filter(d => isEducationDay(d));
-}
+function getEducationDays(from, to) { return dateRange(from, to).filter(d => isEducationDay(d)); }
 
 function maxConsecutiveFull(idx, eduDays, reason = null) {
-  let max = 0;
-  let cur = 0;
+  let max = 0, cur = 0;
   for (const d of eduDays) {
     const a = absences[d]?.[idx];
     const match = a && a.full && (!reason || a.reason === reason);
-    if (match) {
-      cur++;
-      if (cur > max) max = cur;
-    } else {
-      cur = 0;
-    }
+    if (match) { cur++; if (cur > max) max = cur; } else cur = 0;
   }
   return max;
 }
@@ -1275,34 +932,19 @@ function countDaysWithReason(idx, eduDays, reason) {
   let count = 0;
   for (const d of eduDays) {
     const a = absences[d]?.[idx];
-    if (a && a.full && a.reason === reason) {
-      count++;
-    }
+    if (a && a.full && a.reason === reason) count++;
   }
   return count;
 }
 
-function hasFullReason(idx, reason, eduDays) {
-  return eduDays.some(d => {
-    const a = absences[d]?.[idx];
-    return a && a.reason === reason && a.full;
-  });
-}
-
 function buildReport1(from, to, eduDays) {
   const analysis = students.map((name, idx) => {
-    // «По болезни без мед. документов»: health_admin + parents_health
-    const healthAdminMax = Math.max(
-      maxConsecutiveFull(idx, eduDays, 'health_admin'),
-      maxConsecutiveFull(idx, eduDays, 'parents_health')
-    );
+    const healthAdminMax = Math.max(maxConsecutiveFull(idx, eduDays, 'health_admin'), maxConsecutiveFull(idx, eduDays, 'parents_health'));
     return {
       name,
       anyMax: maxConsecutiveFull(idx, eduDays),
       medMax: maxConsecutiveFull(idx, eduDays, 'medical'),
       healthAdminMax: healthAdminMax,
-      // «Уважительные с документами»: только parents_family
-      // (parents_health уже учтён выше, в healthAdminMax)
       parentsMax: maxConsecutiveFull(idx, eduDays, 'parents_family'),
       surveyMax: maxConsecutiveFull(idx, eduDays, 'survey'),
       sportMax: maxConsecutiveFull(idx, eduDays, 'sport'),
@@ -1313,9 +955,6 @@ function buildReport1(from, to, eduDays) {
     };
   });
   const f = pred => analysis.filter(pred).map(a => a.name);
-  
-  // Уважительные: 3+ дня подряд хотя бы по одной из этих причин
-  // (parents_health сюда НЕ входит — он в healthAdmin4)
   const respSet = new Set([
     ...f(a => a.parentsMax >= REPORT_CONSECUTIVE_DAYS),
     ...f(a => a.surveyMax >= REPORT_CONSECUTIVE_DAYS),
@@ -1323,10 +962,8 @@ function buildReport1(from, to, eduDays) {
     ...f(a => a.culturalMax >= REPORT_CONSECUTIVE_DAYS),
     ...f(a => a.ozdMax >= REPORT_CONSECUTIVE_DAYS)
   ]);
-  
   return {
-    from, to,
-    total: students.length,
+    from, to, total: students.length,
     s3plus: f(a => a.anyMax >= REPORT_CONSECUTIVE_DAYS),
     med4: f(a => a.medMax >= REPORT_CONSECUTIVE_DAYS),
     healthAdmin4: f(a => a.healthAdminMax >= REPORT_CONSECUTIVE_DAYS),
@@ -1339,22 +976,15 @@ function buildReport1(from, to, eduDays) {
 function runReport1() {
   const from = document.getElementById('report1From').value;
   const to = document.getElementById('report1To').value;
-  if (!from || !to || from > to) {
-    alert('Проверьте период');
-    return;
-  }
+  if (!from || !to || from > to) { alert('Проверьте период'); return; }
   const eduDays = getEducationDays(from, to);
-  if (!eduDays.length) {
-    document.getElementById('report1Output').innerHTML = `<div class="report-block">
-      <div class="empty-state">Нет учебных дней</div>
-    </div>`;
-    return;
-  }
+  if (!eduDays.length) { document.getElementById('report1Output').innerHTML = `<div class="report-block"><div class="empty-state">Нет учебных дней</div></div>`; return; }
+  
   lastReport1 = buildReport1(from, to, eduDays);
   const totalForPct = lastReport1.total || 0;
   const pct = n => totalForPct ? Math.round((n / totalForPct) * 100) : 0;
   const c = (className || '').trim();
-    const rows = [
+  const rows = [
     ['Всего учеников в классе', lastReport1.total, null],
     ['Пропустили 3 и более дня подряд (любая причина)', lastReport1.s3plus.length, lastReport1.s3plus],
     ['Пропустили 3 и более дня по мед. справке', lastReport1.med4.length, lastReport1.med4],
@@ -1367,29 +997,13 @@ function runReport1() {
     <div class="report-block" id="report1Block">
       <div class="report-title-row">
         <h3>📑 Отчёт №1. Сведения об учащихся${c ? ' ' + c + ' класса' : ''}</h3>
-        <button class="btn-collapse" onclick="toggleCollapse(1)">
-          <span class="collapse-icon">▲</span> Свернуть
-        </button>
+        <button class="btn-collapse" onclick="toggleCollapse(1)"><span class="collapse-icon">▲</span> Свернуть</button>
       </div>
       <div class="report-content">
-        <p class="meta">
-          Период: <b>${formatDateRu(from)}</b> — <b>${formatDateRu(to)}</b> · Учебных дней: <b>${eduDays.length}</b>
-        </p>
+        <p class="meta">Период: <b>${formatDateRu(from)}</b> — <b>${formatDateRu(to)}</b> · Учебных дней: <b>${eduDays.length}</b></p>
         <table class="report-table">
-          <thead>
-            <tr>
-              <th>Показатель</th>
-              <th style="width:80px;text-align:right">Кол-во</th>
-              <th style="width:80px;text-align:right">Доля</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${rows.map(([lbl, cnt, list]) => `<tr>
-              <td>${lbl}${list && list.length ? '<br>' + listHtml(list) : ''}</td>
-              <td class="num">${cnt}</td>
-              <td class="num muted">${cnt ? pct(cnt) + '%' : '—'}</td>
-            </tr>`).join('')}
-          </tbody>
+          <thead><tr><th>Показатель</th><th style="width:80px;text-align:right">Кол-во</th><th style="width:80px;text-align:right">Доля</th></tr></thead>
+          <tbody>${rows.map(([lbl, cnt, list]) => `<tr><td>${lbl}${list && list.length ? '<br>' + listHtml(list) : ''}</td><td class="num">${cnt}</td><td class="num muted">${cnt ? pct(cnt) + '%' : '—'}</td></tr>`).join('')}</tbody>
         </table>
         <div class="report-actions">
           <button class="btn-secondary" onclick="exportExcel(1)">📊 Скачать Excel</button>
@@ -1400,14 +1014,16 @@ function runReport1() {
 }
 
 function buildReport2(from, to, eduDays) {
-  const byReason = {};
-  REASON_KEYS.forEach(k => byReason[k] = 0);
+  const byReason = {}; REASON_KEYS.forEach(k => byReason[k] = 0);
   const medBreakdown = { cold: 0, infectious: 0, skin: 0, injury: 0, hospital: 0, examination: 0, unspecified: 0 };  
   let total = 0;
+  
   for (const d of eduDays) {
     const dayAbs = absences[d] || {};
-    const lessons = getDayLessons(d);
-    for (const a of Object.values(dayAbs)) {
+    for (const [idxStr, a] of Object.entries(dayAbs)) {
+      const idx = parseInt(idxStr, 10);
+      // ВАЖНО: Берем уроки с учетом группы ученика!
+      const lessons = getDayLessons(d, studentIds[idx]); 
       let n = lessons;
       if (a.full === false) {
         const f = Math.max(1, a.from);
@@ -1417,39 +1033,24 @@ function buildReport2(from, to, eduDays) {
       if (n > 0) {
         total += n;
         byReason[a.reason] = (byReason[a.reason] || 0) + n;
-        
         if (a.reason === 'medical') {
-          if (a.medical_reason && medBreakdown[a.medical_reason] !== undefined) {
-            medBreakdown[a.medical_reason] += n;
-          } else {
-            medBreakdown.unspecified += n;
-          }
+          if (a.medical_reason && medBreakdown[a.medical_reason] !== undefined) medBreakdown[a.medical_reason] += n;
+          else medBreakdown.unspecified += n;
         }
       }
     }
   }
+  
   const longAbs = [];
   students.forEach((name, idx) => {
-    let start = null;
-    let reasons = [];
+    let start = null, reasons = [];
     for (let i = 0; i <= eduDays.length; i++) {
       const abs = i < eduDays.length ? absences[eduDays[i]]?.[idx] : null;
       const isFull = abs && abs.reason && abs.full;
-      if (isFull) {
-        if (start === null) start = i;
-        reasons.push(abs.reason);
-      } else {
-        if (start !== null && (i - start) >= REPORT_LONG_ABSENCE_DAYS) {
-          longAbs.push({
-            name,
-            from: eduDays[start],
-            to: eduDays[i - 1],
-            length: i - start,
-            reasons: [...new Set(reasons)]
-          });
-        }
-        start = null;
-        reasons = [];
+      if (isFull) { if (start === null) start = i; reasons.push(abs.reason); } 
+      else {
+        if (start !== null && (i - start) >= REPORT_LONG_ABSENCE_DAYS) longAbs.push({ name, from: eduDays[start], to: eduDays[i - 1], length: i - start, reasons: [...new Set(reasons)] });
+        start = null; reasons = [];
       }
     }
   });
@@ -1458,52 +1059,27 @@ function buildReport2(from, to, eduDays) {
 
 function runReport2() {
   const mStr = document.getElementById('report2Month').value;
-  if (!mStr) {
-    alert('Выберите месяц');
-    return;
-  }
+  if (!mStr) { alert('Выберите месяц'); return; }
   const [y, m] = mStr.split('-').map(Number);
   const lastD = new Date(y, m, 0).getDate();
   const from = `${y}-${String(m).padStart(2, '0')}-01`;
   const to = `${y}-${String(m).padStart(2, '0')}-${String(lastD).padStart(2, '0')}`;
   const eduDays = getEducationDays(from, to);
-  if (!eduDays.length) {
-    document.getElementById('report2Output').innerHTML = `<div class="report-block">
-      <div class="empty-state">Нет учебных дней</div>
-    </div>`;
-    return;
-  }
+  if (!eduDays.length) { document.getElementById('report2Output').innerHTML = `<div class="report-block"><div class="empty-state">Нет учебных дней</div></div>`; return; }
   
   lastReport2 = buildReport2(from, to, eduDays);
   const c = (className || '').trim();
-    const labels = {
-    medical: 'Мед. справка', 
-    health_admin: 'По состоянию здоровья (с разр.)', 
-    parents_family: 'Заявление родителей (все)', 
-    parents_health: 'Заявление родителей (все)', 
-    survey: 'Посещение врача', 
-    sport: 'Соревнования', 
-    cultural: 'Культ-массовые',
-    ozdorovlenie: 'Санаторий',
-    norespect: 'Без уважительной', 
-    other: 'Иная'
-  };
+  const labels = { medical: 'Мед. справка', health_admin: 'По состоянию здоровья (с разр.)', parents_family: 'Заявление родителей (все)', parents_health: 'Заявление родителей (все)', survey: 'Посещение врача', sport: 'Соревнования', cultural: 'Культ-массовые', ozdorovlenie: 'Санаторий', norespect: 'Без уважительной', other: 'Иная' };
   
   let subRows = '';
   REASON_KEYS.forEach(k => {
-    if (k === 'parents_health') return; // пропускаем, объединяем с семейными ниже
+    if (k === 'parents_health') return;
     if (k === 'medical') {
       subRows += `<tr class="sub"><td>${labels[k]}</td><td class="num">${lastReport2.byReason[k] || 0}</td></tr>`;
       const mb = lastReport2.medBreakdown;
       if (mb) {
-        Object.entries(MEDICAL_REASONS).forEach(([key, label]) => {
-          if (mb[key] > 0) {
-            subRows += `<tr class="sub-sub"><td>— ${label}</td><td class="num">${mb[key]}</td></tr>`;
-          }
-        });
-        if (mb.unspecified > 0) {
-          subRows += `<tr class="sub-sub"><td>— Без уточнения</td><td class="num">${mb.unspecified}</td></tr>`;
-        }
+        Object.entries(MEDICAL_REASONS).forEach(([key, label]) => { if (mb[key] > 0) subRows += `<tr class="sub-sub"><td>— ${label}</td><td class="num">${mb[key]}</td></tr>`; });
+        if (mb.unspecified > 0) subRows += `<tr class="sub-sub"><td>— Без уточнения</td><td class="num">${mb.unspecified}</td></tr>`;
       }
     } else if (k === 'parents_family') {
       const totalParents = (lastReport2.byReason['parents_family'] || 0) + (lastReport2.byReason['parents_health'] || 0);
@@ -1514,54 +1090,26 @@ function runReport2() {
   });
   
   const longRows = lastReport2.longAbs.length
-    ? lastReport2.longAbs.map((la, i) => `<tr>
-        <td>${i + 1}</td>
-        <td>${escapeHtml(la.name)}</td>
-        <td>${formatDateRu(la.from)}-${formatDateRu(la.to)}</td>
-        <td>${la.reasons.map(r => REASONS[r]?.label || r).join(', ')}</td>
-      </tr>`).join('')
+    ? lastReport2.longAbs.map((la, i) => `<tr><td>${i + 1}</td><td>${escapeHtml(la.name)}</td><td>${formatDateRu(la.from)}-${formatDateRu(la.to)}</td><td>${la.reasons.map(r => REASONS[r]?.label || r).join(', ')}</td></tr>`).join('')
     : `<tr><td colspan="4" class="empty-state">🎉 Нет учащихся с 5+ днями пропусков!</td></tr>`;
     
   document.getElementById('report2Output').innerHTML = `
     <div class="report-block" id="report2Block">
       <div class="report-title-row">
         <h3>📚 Отчёт №2. Пропущенные уроки${c ? ' (' + c + ')' : ''}</h3>
-        <button class="btn-collapse" onclick="toggleCollapse(2)">
-          <span class="collapse-icon">▲</span> Свернуть
-        </button>
+        <button class="btn-collapse" onclick="toggleCollapse(2)"><span class="collapse-icon">▲</span> Свернуть</button>
       </div>
       <div class="report-content">
-        <p class="meta">
-          Период: <b>${formatDateRu(from)}</b> — <b>${formatDateRu(to)}</b>
-        </p>
+        <p class="meta">Период: <b>${formatDateRu(from)}</b> — <b>${formatDateRu(to)}</b></p>
         <table class="report-table">
-          <thead>
-            <tr>
-              <th>Категория</th>
-              <th style="width:120px;text-align:right">Уроков</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr class="total-row">
-              <td>Всего пропущено</td>
-              <td class="num" style="font-size:16px">${lastReport2.total}</td>
-            </tr>${subRows}
-          </tbody>
+          <thead><tr><th>Категория</th><th style="width:120px;text-align:right">Уроков</th></tr></thead>
+          <tbody><tr class="total-row"><td>Всего пропущено</td><td class="num" style="font-size:16px">${lastReport2.total}</td></tr>${subRows}</tbody>
         </table>
         <h4 style="margin:20px 0 10px; font-size:15px;">Учащиеся с 5+ днями подряд</h4>
-        <div class="table-wrap">
-          <table class="report-table exact-table">
-            <thead>
-              <tr>
-                <th style="width: 50px;">№</th>
-                <th>ФИО учащегося</th>
-                <th>Дата отсутствия</th>
-                <th>Причина</th>
-              </tr>
-            </thead>
-            <tbody>${longRows}</tbody>
-          </table>
-        </div>
+        <div class="table-wrap"><table class="report-table exact-table">
+          <thead><tr><th style="width: 50px;">№</th><th>ФИО учащегося</th><th>Дата отсутствия</th><th>Причина</th></tr></thead>
+          <tbody>${longRows}</tbody>
+        </table></div>
         <div class="report-actions">
           <button class="btn-secondary" onclick="exportExcel(2)">📊 Скачать Excel</button>
           <button class="btn-secondary" onclick="printReport(2, 'Количество пропущенных уроков', '${formatDateRu(from)} — ${formatDateRu(to)}')">🖨️ Печать / PDF</button>
@@ -1572,80 +1120,45 @@ function runReport2() {
 
 function runYearSummary() {
   const c = (className || '').trim();
-  let rowsHtml = '';
-  let hasData = false;
+  let rowsHtml = '', hasData = false;
   quarters.forEach(q => {
     if (!q.from || !q.to) return;
-    const edu = getEducationDays(q.from, q.to);
-    if (!edu.length) return;
+    const edu = getEducationDays(q.from, q.to); if (!edu.length) return;
     hasData = true;
     const r = buildReport1(q.from, q.to, edu);
-    rowsHtml += `<tr>
-      <td>${q.name}</td>
-      <td class="num">${edu.length}</td>
-      <td class="num">${r.s3plus.length}</td>
-      <td class="num">${r.med4.length}</td>
-    </tr>`;
+    rowsHtml += `<tr><td>${q.name}</td><td class="num">${edu.length}</td><td class="num">${r.s3plus.length}</td><td class="num">${r.med4.length}</td></tr>`;
   });
   document.getElementById('yearOutput').innerHTML = hasData
-    ? `<div class="report-block">
-        <h3>📅 Сводка за учебный год ${c ? ' (' + c + ')' : ''}</h3>
-        <p class="meta">Сравнение по четвертям</p>
-        <table class="report-table">
-          <thead>
-            <tr>
-              <th>Четверть</th>
-              <th style="text-align:right">Учебных дней</th>
-              <th style="text-align:right">3+ дня подряд</th>
-              <th style="text-align:right">3+ дней по справке</th>
-            </tr>
-          </thead>
-          <tbody>${rowsHtml}</tbody>
-        </table>
-      </div>`
+    ? `<div class="report-block"><h3>📅 Сводка за учебный год ${c ? ' (' + c + ')' : ''}</h3><p class="meta">Сравнение по четвертям</p>
+        <table class="report-table"><thead><tr><th>Четверть</th><th style="text-align:right">Учебных дней</th><th style="text-align:right">3+ дня подряд</th><th style="text-align:right">3+ дней по справке</th></tr></thead><tbody>${rowsHtml}</tbody></table></div>`
     : `<div class="report-block"><div class="empty-state">Нет данных</div></div>`;
 }
 
 function listHtml(arr) {
   if (!arr || !arr.length) return '';
-  return `<details class="students-list">
-    <summary>ФИО (${arr.length})</summary>
-    <ul>${arr.map(n => `<li>${escapeHtml(n)}</li>`).join('')}</ul>
-  </details>`;
+  return `<details class="students-list"><summary>ФИО (${arr.length})</summary><ul>${arr.map(n => `<li>${escapeHtml(n)}</li>`).join('')}</ul></details>`;
 }
-
-function toggleCollapse(n) {
-  const b = document.getElementById('report' + n + 'Block');
-  if (b) b.classList.toggle('collapsed');
-}
+function toggleCollapse(n) { const b = document.getElementById('report' + n + 'Block'); if (b) b.classList.toggle('collapsed'); }
 
 function printReport(n, title, period) {
   document.getElementById('printTitle').textContent = title;
   document.getElementById('printClass').textContent = className || '—';
   document.getElementById('printPeriod').textContent = period;
   document.body.classList.add('printing-r' + n);
-  setTimeout(() => {
-    window.print();
-    setTimeout(() => document.body.classList.remove('printing-r' + n), 300);
-  }, 50);
+  setTimeout(() => { window.print(); setTimeout(() => document.body.classList.remove('printing-r' + n), 300); }, 50);
 }
-
 function printClassList() {
   document.getElementById('printTitle').textContent = 'Список класса';
   document.getElementById('printClass').textContent = className || '—';
   document.getElementById('printPeriod').textContent = 'Дата: ' + formatDateRu(dateInput.value);
   document.body.classList.add('printing-class');
-  setTimeout(() => {
-    window.print();
-    setTimeout(() => document.body.classList.remove('printing-class'), 300);
-  }, 50);
+  setTimeout(() => { window.print(); setTimeout(() => document.body.classList.remove('printing-class'), 300); }, 50);
 }
 
 function exportExcel(reportNum) {
   if (reportNum === 1 && !lastReport1) return;
   if (reportNum === 2 && !lastReport2) return;
-  const wb = XLSX.utils.book_new();
-  const wsData = [];
+  const wb = XLSX.utils.book_new(); const wsData = [];
   if (reportNum === 1) {
     const r = lastReport1;
     wsData.push(['Показатель', 'Кол-во', 'ФИО']);
@@ -1657,46 +1170,21 @@ function exportExcel(reportNum) {
     wsData.push(['Иная причина', r.other.length, r.other.join(', ')]);
     wsData.push(['Без уважительной', r.noresp.length, r.noresp.join(', ')]);
   } else {
-    wsData.push(['Учащиеся с 5+ днями подряд']);
-    wsData.push(['№', 'ФИО', 'Дата', 'Причина']);
     const r = lastReport2;
-    if (r.longAbs.length) {
-      r.longAbs.forEach((la, i) => wsData.push([
-        i + 1,
-        la.name,
-        `${formatDateRu(la.from)}-${formatDateRu(la.to)}`,
-        la.reasons.map(x => REASONS[x]?.label).join(', ')
-      ]));
-    } else {
-      wsData.push(['', 'Нет данных', '', '']);
-    }
-    wsData.push([]);
-    wsData.push(['Всего пропущено уроков', r.total]);
-    
-    const labels = { 
-      medical: 'Мед. справка', 
-      ozdorovlenie: 'Санаторий', 
-      health_admin: 'По состоянию здоровья (с разр.)',
-      parents_family: 'Заявление родителей (все)', 
-      parents_health: 'Заявление родителей (все)', 
-      survey: 'Посещение врача',
-      sport: 'Соревнования', 
-      cultural: 'Культ-массовые', 
-      norespect: 'Без уважительной', 
-      other: 'Иная' 
-    };
-    
+    wsData.push(['Учащиеся с 5+ днями подряд']); wsData.push(['№', 'ФИО', 'Дата', 'Причина']);
+    if (r.longAbs.length) r.longAbs.forEach((la, i) => wsData.push([i + 1, la.name, `${formatDateRu(la.from)}-${formatDateRu(la.to)}`, la.reasons.map(x => REASONS[x]?.label).join(', ')]));
+    else wsData.push(['', 'Нет данных', '', '']);
+    wsData.push([]); wsData.push(['Всего пропущено уроков', r.total]);
+    const labels = { medical: 'Мед. справка', ozdorovlenie: 'Санаторий', health_admin: 'По состоянию здоровья (с разр.)', parents_family: 'Заявление родителей (все)', parents_health: 'Заявление родителей (все)', survey: 'Посещение врача', sport: 'Соревнования', cultural: 'Культ-массовые', norespect: 'Без уважительной', other: 'Иная' };
     REASON_KEYS.forEach(k => {
-      if (k === 'parents_health') return; // пропускаем, объединяем с семейными
+      if (k === 'parents_health') return;
       if (k === 'parents_family') {
         const totalParents = (r.byReason['parents_family'] || 0) + (r.byReason['parents_health'] || 0);
         if (totalParents) wsData.push(['Заявление родителей (все)', totalParents]);
       } else if (r.byReason[k]) {
         wsData.push([labels[k], r.byReason[k]]);
         if (k === 'medical' && r.medBreakdown) {
-          Object.entries(MEDICAL_REASONS).forEach(([key, label]) => {
-            if (r.medBreakdown[key]) wsData.push([`  — ${label}`, r.medBreakdown[key]]);
-          });
+          Object.entries(MEDICAL_REASONS).forEach(([key, label]) => { if (r.medBreakdown[key]) wsData.push([`  — ${label}`, r.medBreakdown[key]]); });
           if (r.medBreakdown.unspecified) wsData.push(['  — Без уточнения', r.medBreakdown.unspecified]);
         }
       }
@@ -1708,8 +1196,16 @@ function exportExcel(reportNum) {
   toast('Excel скачан');
 }
 
+// ==========================================
+// НАСТРОЙКИ И УПРАВЛЕНИЕ ГРУППАМИ
+// ==========================================
+
 function loadSettingsForm() {
   document.getElementById('classNameInput').value = className;
+  const isProf = document.getElementById('isProfiledCheckbox');
+  if (isProf) isProf.checked = isProfiled;
+  toggleProfiledClass(false); // Визуально обновляем интерфейс без сохранения в БД
+  
   document.getElementById('quartersForm').innerHTML = quarters.map((q, i) => {
     const s = q.schedule || { 0:0, 1:7, 2:7, 3:7, 4:7, 5:7, 6:0 };
     return `
@@ -1733,16 +1229,102 @@ function loadSettingsForm() {
   renderSpecialDaysList();
 }
 
+async function toggleProfiledClass(saveToDB = true) {
+  const checkbox = document.getElementById('isProfiledCheckbox');
+  if (!checkbox) return;
+  isProfiled = checkbox.checked;
+  
+  const wrapper = document.getElementById('regularScheduleWrapper');
+  if (wrapper) wrapper.style.display = isProfiled ? 'none' : 'block';
+  
+  renderGroups();
+  if (saveToDB) await saveSettings();
+}
+
+function renderGroups() {
+  const card = document.getElementById('groupsSettingsCard');
+  if (card) card.style.display = isProfiled ? 'block' : 'none';
+  if (!isProfiled) return;
+
+  const list = document.getElementById('groupsList');
+  if (!list) return;
+  
+  // Кнопки выбора четверти (глобальные для всех групп)
+  let quarterTabs = `<div style="display:flex; gap:5px; margin-bottom: 15px; flex-wrap:wrap;">`;
+  quarters.forEach((q, i) => {
+    quarterTabs += `<button class="btn-secondary" style="padding: 6px 12px; font-size: 11px; ${groupActiveQuarter === i ? 'background:var(--primary); color:#fff; border-color:var(--primary)' : ''}" onclick="switchGroupQuarter(${i})">${escapeHtml(q.name)}</button>`;
+  });
+  quarterTabs += `</div>`;
+
+  if (!classGroups.length) {
+    list.innerHTML = quarterTabs + '<div class="special-empty">Групп нет. Добавьте группу ниже.</div>';
+    return;
+  }
+
+  list.innerHTML = quarterTabs + classGroups.map(g => {
+    const s = (g.schedules && g.schedules[groupActiveQuarter]) ? g.schedules[groupActiveQuarter] : {};
+    return `<div style="padding: 15px; border: 1px solid var(--border); border-radius: 14px; margin-bottom: 12px; background: var(--input-bg);">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; gap: 10px;">
+        <input type="text" value="${escapeHtml(g.name)}" 
+               onblur="renameClassGroup('${g.id}', this.value); this.style.borderColor='transparent'; this.style.background='transparent';"
+               onfocus="this.style.borderColor='var(--primary)'; this.style.background='var(--card)';"
+               style="flex:1; padding: 6px 8px; border-radius: 8px; border: 1px solid transparent; background: transparent; color: var(--text); font-weight: 800; font-size: 15px; min-width: 0;">
+        <button class="special-item-del" onclick="deleteClassGroup('${g.id}')" title="Удалить группу">✕</button>
+      </div>
+      <div class="schedule-grid">
+        ${[1,2,3,4,5].map(d => `<div class="schedule-item"><label>${['Пн','Вт','Ср','Чт','Пт'][d-1]}</label><input type="number" min="0" max="15" value="${s[d] ?? 7}" onchange="updateGroupSchedule('${g.id}', ${d}, this.value)"></div>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function switchGroupQuarter(idx) {
+  groupActiveQuarter = idx;
+  renderGroups();
+}
+
+async function addClassGroup() {
+  const name = document.getElementById('newGroupName').value.trim();
+  if (!name) { toast('Введите название'); return; }
+  const { data, error } = await sb.from('class_groups').insert({ class_id: currentClassId, name }).select().single();
+  if (error) { toast(error.message); return; }
+  classGroups.push(data);
+  document.getElementById('newGroupName').value = '';
+  renderGroups(); toast('Группа добавлена');
+}
+
+async function renameClassGroup(id, newName) {
+  const val = (newName || '').trim();
+  if (!val) { renderGroups(); return; }
+  const grp = classGroups.find(g => g.id === id);
+  if (!grp || grp.name === val) return;
+  const { error } = await sb.from('class_groups').update({ name: val }).eq('id', id);
+  if (error) { toast('Ошибка: ' + error.message); renderGroups(); return; }
+  grp.name = val; toast('Название обновлено');
+}
+
+async function updateGroupSchedule(id, dow, val) {
+  const grp = classGroups.find(g => g.id === id);
+  if (!grp) return;
+  if (!grp.schedules) grp.schedules = {};
+  if (!grp.schedules[groupActiveQuarter]) grp.schedules[groupActiveQuarter] = {};
+  grp.schedules[groupActiveQuarter][dow] = Math.max(0, parseInt(val, 10) || 0);
+  await sb.from('class_groups').update({ schedules: grp.schedules }).eq('id', id);
+  toast('Расписание группы обновлено');
+}
+
+async function deleteClassGroup(id) {
+  if (!confirm('Удалить группу? Ученики из неё вернутся на общее расписание.')) return;
+  await sb.from('class_groups').delete().eq('id', id);
+  classGroups = classGroups.filter(g => g.id !== id);
+  renderGroups();
+}
+
 async function saveClassName() {
   const val = document.getElementById('classNameInput').value.trim();
   const { error } = await sb.from('classes').update({ name: val }).eq('id', currentClassId);
-  if (error) {
-    toast('Ошибка: ' + error.message);
-    return;
-  }
-  className = val;
-  updateHeader();
-  toast('Сохранено');
+  if (error) { toast('Ошибка: ' + error.message); return; }
+  className = val; updateHeader(); toast('Сохранено');
 }
 
 async function saveQuarters() {
@@ -1751,35 +1333,23 @@ async function saveQuarters() {
     for (let d = 1; d <= 5; d++) {
       newSched[d] = Math.max(0, parseInt(document.getElementById(`qSched${i}_${d}`).value) || 0);
     }
-    return {
-      ...q,
-      from: document.getElementById('qFrom' + i).value,
-      to: document.getElementById('qTo' + i).value,
-      schedule: newSched
-    };
+    return { ...q, from: document.getElementById('qFrom' + i).value, to: document.getElementById('qTo' + i).value, schedule: newSched };
   });
   const ok = await saveSettings();
   if (!ok) return;
-  refreshQuarterSelect();
-  toast('Сохранено');
+  refreshQuarterSelect(); toast('Сохранено');
 }
 
 async function saveSchedule() {
-  for (let d = 1; d <= 5; d++) {
-    schedule[d] = Math.max(0, parseInt(document.getElementById('sched' + d).value) || 0);
-  }
-  schedule[0] = 0;
-  schedule[6] = 0;
-  const ok = await saveSettings();
-  if (ok) toast('Сохранено');
+  for (let d = 1; d <= 5; d++) schedule[d] = Math.max(0, parseInt(document.getElementById('sched' + d).value) || 0);
+  schedule[0] = 0; schedule[6] = 0;
+  const ok = await saveSettings(); if (ok) toast('Сохранено');
 }
 
 async function saveExcludedDates() {
-  excludedDates = document.getElementById('excludedDatesEditor').value
-    .split('\n').map(s => s.trim()).filter(s => /^\d{4}-\d{2}-\d{2}$/.test(s)).sort();
+  excludedDates = document.getElementById('excludedDatesEditor').value.split('\n').map(s => s.trim()).filter(s => /^\d{4}-\d{2}-\d{2}$/.test(s)).sort();
   document.getElementById('excludedDatesEditor').value = excludedDates.join('\n');
-  const ok = await saveSettings();
-  if (ok) toast('Сохранено');
+  const ok = await saveSettings(); if (ok) toast('Сохранено');
 }
 
 async function fillBelarusHolidays() {
@@ -1787,58 +1357,40 @@ async function fillBelarusHolidays() {
   const years = [year, year + 1];
   const added = new Set(excludedDates);
   years.forEach(y => {
-    added.add(`${y}-01-01`);
-    added.add(`${y}-01-07`);
-    added.add(`${y}-03-08`);
-    added.add(`${y}-05-01`);
-    added.add(`${y}-05-09`);
-    added.add(`${y}-07-03`);
-    added.add(`${y}-11-07`);
-    added.add(`${y}-12-25`);
+    added.add(`${y}-01-01`); added.add(`${y}-01-07`); added.add(`${y}-03-08`); added.add(`${y}-05-01`);
+    added.add(`${y}-05-09`); added.add(`${y}-07-03`); added.add(`${y}-11-07`); added.add(`${y}-12-25`);
   });
   excludedDates = [...added].sort();
   document.getElementById('excludedDatesEditor').value = excludedDates.join('\n');
-  const ok = await saveSettings();
-  if (ok) toast('Праздники добавлены');
+  const ok = await saveSettings(); if (ok) toast('Праздники добавлены');
 }
 
 async function addSpecialDay() {
   const date = document.getElementById('spDate').value;
   const lessons = Math.max(1, Math.min(15, parseInt(document.getElementById('spLessons').value, 10) || 1));
-  if (!date) {
-    alert('Выберите дату');
-    return;
-  }
+  if (!date) { alert('Выберите дату'); return; }
   if (specialDays.find(s => s.date === date)) {
     if (!confirm('Такая дата уже есть. Заменить?')) return;
     specialDays = specialDays.filter(s => s.date !== date);
   }
-  specialDays.push({ date, lessons });
-  specialDays.sort((a, b) => a.date.localeCompare(b.date));
+  specialDays.push({ date, lessons }); specialDays.sort((a, b) => a.date.localeCompare(b.date));
   excludedDates = excludedDates.filter(d => d !== date);
   document.getElementById('excludedDatesEditor').value = excludedDates.join('\n');
   document.getElementById('spDate').value = '';
-  const ok = await saveSettings();
-  if (!ok) return;
-  renderSpecialDaysList();
-  toast('Добавлен');
+  const ok = await saveSettings(); if (!ok) return;
+  renderSpecialDaysList(); toast('Добавлен');
 }
 
 async function removeSpecialDay(date) {
   if (!confirm('Удалить?')) return;
   specialDays = specialDays.filter(s => s.date !== date);
-  const ok = await saveSettings();
-  if (!ok) return;
-  renderSpecialDaysList();
-  toast('Удалено');
+  const ok = await saveSettings(); if (!ok) return;
+  renderSpecialDaysList(); toast('Удалено');
 }
 
 function renderSpecialDaysList() {
   const el = document.getElementById('specialDaysList');
-  if (!specialDays.length) {
-    el.innerHTML = '<div class="special-empty">Нет дней</div>';
-    return;
-  }
+  if (!specialDays.length) { el.innerHTML = '<div class="special-empty">Нет дней</div>'; return; }
   const dowNames = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
   el.innerHTML = specialDays.map(s => `<div class="special-item">
     <span class="special-item-date">${formatDateRu(s.date)}</span>
@@ -1852,21 +1404,11 @@ async function saveSettings() {
   if (!currentClassId) return false;
   try {
     const { error } = await sb.from('class_settings').upsert({
-      class_id: currentClassId,
-      schedule,
-      quarters,
-      excluded_dates: excludedDates,
-      special_days: specialDays
+      class_id: currentClassId, schedule, quarters, excluded_dates: excludedDates, special_days: specialDays, is_profiled: isProfiled
     }, { onConflict: 'class_id' });
-    if (error) {
-      toast('Ошибка сохранения настроек: ' + error.message);
-      return false;
-    }
+    if (error) { toast('Ошибка сохранения настроек: ' + error.message); return false; }
     return true;
-  } catch (e) {
-    toast('Ошибка сохранения: ' + e.message);
-    return false;
-  }
+  } catch (e) { toast('Ошибка сохранения: ' + e.message); return false; }
 }
 
 function refreshQuarterSelect() {
@@ -1889,51 +1431,30 @@ function onQuarterChange() {
   }
 }
 
-function onReport1DateChange() {
-  document.getElementById('quarterSelect').value = '';
-  updateReport1Badge();
-}
+function onReport1DateChange() { document.getElementById('quarterSelect').value = ''; updateReport1Badge(); }
 
 function updateReport1Badge() {
-  const from = document.getElementById('report1From').value;
-  const to = document.getElementById('report1To').value;
-  const badge = document.getElementById('report1EduBadge');
-  if (!from || !to || from > to) {
-    badge.textContent = '📚 —';
-    return;
-  }
+  const from = document.getElementById('report1From').value, to = document.getElementById('report1To').value, badge = document.getElementById('report1EduBadge');
+  if (!from || !to || from > to) { badge.textContent = '📚 —'; return; }
   badge.textContent = `📚 ${getEducationDays(from, to).length} уч. дн.`;
 }
 
 function updateReport2Badge() {
-  const mStr = document.getElementById('report2Month').value;
-  const badge = document.getElementById('report2EduBadge');
-  if (!mStr) {
-    badge.textContent = '📚 —';
-    return;
-  }
-  const [y, m] = mStr.split('-').map(Number);
-  const lastD = new Date(y, m, 0).getDate();
-  const from = `${y}-${String(m).padStart(2, '0')}-01`;
-  const to = `${y}-${String(m).padStart(2, '0')}-${String(lastD).padStart(2, '0')}`;
+  const mStr = document.getElementById('report2Month').value, badge = document.getElementById('report2EduBadge');
+  if (!mStr) { badge.textContent = '📚 —'; return; }
+  const [y, m] = mStr.split('-').map(Number); const lastD = new Date(y, m, 0).getDate();
+  const from = `${y}-${String(m).padStart(2, '0')}-01`, to = `${y}-${String(m).padStart(2, '0')}-${String(lastD).padStart(2, '0')}`;
   badge.textContent = `📚 ${getEducationDays(from, to).length} уч. дн.`;
 }
 
 function initReportDates() {
-  const f = document.getElementById('report1From');
-  const t = document.getElementById('report1To');
-  const m = document.getElementById('report2Month');
+  const f = document.getElementById('report1From'), t = document.getElementById('report1To'), m = document.getElementById('report2Month');
   if (!f.value) {
-    const today = todayStr();
-    const curQ = quarters.find(q => today >= q.from && today <= q.to) || quarters[0];
-    if (curQ) {
-      f.value = curQ.from;
-      t.value = curQ.to;
-    }
+    const today = todayStr(); const curQ = quarters.find(q => today >= q.from && today <= q.to) || quarters[0];
+    if (curQ) { f.value = curQ.from; t.value = curQ.to; }
   }
   if (!m.value) m.value = todayStr().slice(0, 7);
-  updateReport1Badge();
-  updateReport2Badge();
+  updateReport1Badge(); updateReport2Badge();
 }
 
 function switchReportPane(name) {
@@ -1945,20 +1466,14 @@ function exportCSV() {
   const day = getDayData();
   let csv = 'Дата;№;ФИО;Статус;Причина;Комментарий\n';
   students.forEach((name, i) => {
-    const a = day[i];
-    const st = a ? 'Отсутствует' : 'Присутствует';
-    const rs = a ? (REASONS[a.reason]?.label || '') : '';
-    const cm = a && a.comment ? a.comment : '';
-    const safeName = String(name).replace(/"/g, '""');
-    const safeCm = String(cm).replace(/"/g, '""');
+    const a = day[i]; const st = a ? 'Отсутствует' : 'Присутствует';
+    const rs = a ? (REASONS[a.reason]?.label || '') : ''; const cm = a && a.comment ? a.comment : '';
+    const safeName = String(name).replace(/"/g, '""'); const safeCm = String(cm).replace(/"/g, '""');
     csv += `${dateInput.value};${i + 1};"${safeName}";${st};${rs};"${safeCm}"\n`;
   });
   const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `день_${dateInput.value}.csv`;
-  a.click();
+  const url = URL.createObjectURL(blob); const a = document.createElement('a');
+  a.href = url; a.download = `день_${dateInput.value}.csv`; a.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
@@ -1968,7 +1483,6 @@ function switchTab(name) {
   if (name === 'settings') loadSettingsForm();
   if (name === 'reports') initReportDates();
   
-  // Управляем классами на body для CSS
   const body = document.body;
   body.classList.remove('tab-attendance-active', 'tab-reports-active', 'tab-settings-active');
   body.classList.add('tab-' + name + '-active');
@@ -1976,30 +1490,20 @@ function switchTab(name) {
 
 function toast(msg) {
   const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.classList.add('show');
+  el.textContent = msg; el.classList.add('show');
   setTimeout(() => el.classList.remove('show'), 2600);
 }
 
 document.addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); undoLast(); return; }
 
-  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
-    e.preventDefault();
-    undoLast();
-    return;
-  }
-
-    if (e.key >= '1' && e.key <= '9') {
-    const reasonIdx = e.key - 1;
-    const reason = REASON_KEYS[reasonIdx];
+  if (e.key >= '1' && e.key <= '9') {
+    const reasonIdx = e.key - 1; const reason = REASON_KEYS[reasonIdx];
     if (!reason) return;
-
     if (selectedStudents.size > 0) {
       pushUndo('Изменение статуса (горячие клавиши)');
-      const d = dateInput.value;
-      if (!absences[d]) absences[d] = {};
-
+      const d = dateInput.value; if (!absences[d]) absences[d] = {};
       selectedStudents.forEach(idx => {
         const prev = absences[d][idx];
         if (prev && prev.reason && prev.full === false) {
@@ -2008,34 +1512,22 @@ document.addEventListener('keydown', e => {
           absences[d][idx] = { reason, full: true, comment: prev ? prev.comment : '', medical_reason: reason === 'medical' ? (prev?.medical_reason || '') : '' };
         }
       });
-
       persistChange(`Массовое изменение статуса (${REASONS[reason].label})`);
-      selectedStudents.clear();
-      updateBulkPanel();
-      render();
-      toast(`Статус "${REASONS[reason].label}" применён к выбранным`);
-    } else {
-      toast(`Сначала выделите ученика чекбоксом, затем нажмите ${e.key}`);
-    }
+      selectedStudents.clear(); updateBulkPanel(); render(); toast(`Статус "${REASONS[reason].label}" применён к выбранным`);
+    } else { toast(`Сначала выделите ученика чекбоксом, затем нажмите ${e.key}`); }
   }
 });
 
 async function init() {
   loadPrefs();
-  
-  // Убрали отсюда принудительную установку даты, так как она теперь корректно работает в afterLogin
-  
   document.querySelectorAll('.side-btn').forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
-  document.getElementById('intervalBackdrop').addEventListener('click', e => {
-    if (e.target.id === 'intervalBackdrop') closeIntervalModal();
-  });
+  document.getElementById('intervalBackdrop').addEventListener('click', e => { if (e.target.id === 'intervalBackdrop') closeIntervalModal(); });
 
   setupTableDelegation();
 
   const { data: { session } } = await sb.auth.getSession();
-  if (session && session.user) {
-    await afterLogin(session.user);
-  } else {
+  if (session && session.user) { await afterLogin(session.user); } 
+  else {
     document.getElementById('loginScreen').style.display = 'flex';
     document.querySelector('.container').style.display = 'none';
   }
