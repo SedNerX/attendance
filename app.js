@@ -15,6 +15,7 @@ let studentNotes = {};
 let classGroups = [];
 let studentGroups = {};
 let isProfiled = false;
+let activeQuarterTab = 0;
 let groupActiveQuarter = {}; // Для хранения вкладок четвертей в настройках групп
 
 const REASONS = {
@@ -1219,37 +1220,72 @@ function loadSettingsForm() {
   const todayStrVal = todayStr();
   const currentQIdx = quarters.findIndex(q => todayStrVal >= q.from && todayStrVal <= q.to);
   groupActiveQuarter = currentQIdx !== -1 ? currentQIdx : 0;
+  activeQuarterTab = groupActiveQuarter;
   // ----------------------------------
 
   document.getElementById('classNameInput').value = className;
   
   const isProf = document.getElementById('isProfiledCheckbox');
   if (isProf) isProf.checked = isProfiled;
-  toggleProfiledClass(false); // Визуально обновляем интерфейс без сохранения в БД
+  toggleProfiledClass(false);
   
-  // Отрисовка полей для обычных классов (даты и уроки по дням)
-  document.getElementById('quartersForm').innerHTML = quarters.map((q, i) => {
-    const s = q.schedule || { 0:0, 1:7, 2:7, 3:7, 4:7, 5:7, 6:0 };
-    return `
-    <div class="quarter-settings-block" style="margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid var(--border);">
-      <div class="quarter-row">
-        <label>${escapeHtml(q.name)}</label>
-        <input type="date" id="qFrom${i}" value="${q.from}">
-        <input type="date" id="qTo${i}" value="${q.to}">
-      </div>
-      <div class="schedule-grid" style="margin-top: 10px;">
-        <div class="schedule-item"><label>Пн</label><input type="number" id="qSched${i}_1" min="0" max="15" value="${s[1] ?? 7}"></div>
-        <div class="schedule-item"><label>Вт</label><input type="number" id="qSched${i}_2" min="0" max="15" value="${s[2] ?? 7}"></div>
-        <div class="schedule-item"><label>Ср</label><input type="number" id="qSched${i}_3" min="0" max="15" value="${s[3] ?? 7}"></div>
-        <div class="schedule-item"><label>Чт</label><input type="number" id="qSched${i}_4" min="0" max="15" value="${s[4] ?? 7}"></div>
-        <div class="schedule-item"><label>Пт</label><input type="number" id="qSched${i}_5" min="0" max="15" value="${s[5] ?? 7}"></div>
-      </div>
-    </div>`;
-  }).join('');
+  renderQuarterTabs();
   
-  // Обновление остальных полей настроек
   document.getElementById('excludedDatesEditor').value = excludedDates.join('\n');
   renderSpecialDaysList();
+}
+
+// Новая функция для отрисовки кнопок-вкладок и одной карточки настроек
+function renderQuarterTabs() {
+  const container = document.getElementById('quartersForm');
+  if (!container) return;
+
+  let html = `<div style="display:flex; gap:5px; margin-bottom: 15px; flex-wrap:wrap;">`;
+  quarters.forEach((q, i) => {
+    html += `<button class="btn-secondary" style="padding: 6px 12px; font-size: 11px; ${activeQuarterTab === i ? 'background:var(--primary); color:#fff; border-color:var(--primary)' : ''}" onclick="switchQuarterTab(${i})">${escapeHtml(q.name)}</button>`;
+  });
+  html += `</div>`;
+
+  const q = quarters[activeQuarterTab];
+  const s = q.schedule || { 0:0, 1:7, 2:7, 3:7, 4:7, 5:7, 6:0 };
+  
+  html += `
+    <div class="quarter-settings-block" style="padding-bottom: 20px;">
+      <div class="quarter-row">
+        <label>${escapeHtml(q.name)}</label>
+        <input type="date" id="qFrom${activeQuarterTab}" value="${q.from}">
+        <input type="date" id="qTo${activeQuarterTab}" value="${q.to}">
+      </div>
+      <div class="schedule-grid" style="margin-top: 10px;">
+        <div class="schedule-item"><label>Пн</label><input type="number" id="qSched${activeQuarterTab}_1" min="0" max="15" value="${s[1] ?? 7}"></div>
+        <div class="schedule-item"><label>Вт</label><input type="number" id="qSched${activeQuarterTab}_2" min="0" max="15" value="${s[2] ?? 7}"></div>
+        <div class="schedule-item"><label>Ср</label><input type="number" id="qSched${activeQuarterTab}_3" min="0" max="15" value="${s[3] ?? 7}"></div>
+        <div class="schedule-item"><label>Чт</label><input type="number" id="qSched${activeQuarterTab}_4" min="0" max="15" value="${s[4] ?? 7}"></div>
+        <div class="schedule-item"><label>Пт</label><input type="number" id="qSched${activeQuarterTab}_5" min="0" max="15" value="${s[5] ?? 7}"></div>
+      </div>
+      <div style="margin-top: 15px;"><button class="btn-primary" onclick="saveQuarters()">Сохранить настройки</button></div>
+    </div>`;
+    
+  container.innerHTML = html;
+}
+
+// Новая функция переключения вкладки
+function switchQuarterTab(idx) {
+  // Перед переключением нужно сохранить текущие введенные данные в память,
+  // чтобы они не потерялись, если пользователь не нажал "Сохранить"
+  const q = quarters[activeQuarterTab];
+  if (q) {
+    q.from = document.getElementById(`qFrom${activeQuarterTab}`).value;
+    q.to = document.getElementById(`qTo${activeQuarterTab}`).value;
+    const newSched = { 0:0, 1:0, 2:0, 3:0, 4:0, 5:0, 6:0 };
+    for (let d = 1; d <= 5; d++) {
+      newSched[d] = Math.max(0, parseInt(document.getElementById(`qSched${activeQuarterTab}_${d}`).value) || 0);
+    }
+    q.schedule = newSched;
+  }
+  
+  activeQuarterTab = idx;
+  renderQuarterTabs();
 }
 
 async function toggleProfiledClass(saveToDB = true) {
@@ -1364,16 +1400,22 @@ async function saveClassName() {
 }
 
 async function saveQuarters() {
-  quarters = quarters.map((q, i) => {
-    const newSched = { 0:0, 1:0, 2:0, 3:0, 4:0, 5:0, 6:0 };
-    for (let d = 1; d <= 5; d++) {
-      newSched[d] = Math.max(0, parseInt(document.getElementById(`qSched${i}_${d}`).value) || 0);
-    }
-    return { ...q, from: document.getElementById('qFrom' + i).value, to: document.getElementById('qTo' + i).value, schedule: newSched };
-  });
+  const q = quarters[activeQuarterTab];
+  if (!q) return;
+  
+  q.from = document.getElementById('qFrom' + activeQuarterTab).value;
+  q.to = document.getElementById('qTo' + activeQuarterTab).value;
+  
+  const newSched = { 0:0, 1:0, 2:0, 3:0, 4:0, 5:0, 6:0 };
+  for (let d = 1; d <= 5; d++) {
+    newSched[d] = Math.max(0, parseInt(document.getElementById(`qSched${activeQuarterTab}_${d}`).value) || 0);
+  }
+  q.schedule = newSched;
+
   const ok = await saveSettings();
   if (!ok) return;
-  refreshQuarterSelect(); toast('Сохранено');
+  refreshQuarterSelect();
+  toast('Сохранено');
 }
 
 async function saveSchedule() {
