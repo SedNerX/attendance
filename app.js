@@ -118,30 +118,41 @@ function getDayLessons(dateStr, studentId = null) {
   const dow = dowOf(dateStr);
   const sp = getSpecialDay(dateStr);
   
+  // Выходные и исключённые дни
   if (dow === 0 || dow === 6 || excludedDates.includes(dateStr)) {
      if (!sp) return 0;
   }
 
-  // Если класс профильный и ученик в группе
-  if (studentId && isProfiled && studentGroups[studentId]) {
+  // 1. Базовое расписание (для обычных классов)
+  let baseLessons = 7;
+  const q = quarters.find(q => dateStr >= q.from && dateStr <= q.to);
+  if (q && q.schedule && q.schedule[dow] !== undefined) {
+    baseLessons = q.schedule[dow];
+  } else if (schedule[dow] !== undefined) {
+    baseLessons = schedule[dow];
+  }
+
+  // 2. Если профильный класс и ученик в группе
+  if (isProfiled && studentId && studentGroups[studentId]) {
     const grp = classGroups.find(g => g.id === studentGroups[studentId]);
+    let grpLessons = 7; // По умолчанию для профильного класса — 7 уроков
+    
     if (grp && grp.schedules) {
       const qIdx = getQuarterIndexForDate(dateStr);
-      if (qIdx !== -1) {
+      // Если для этой четверти есть настройки группы
+      if (qIdx !== -1 && grp.schedules[qIdx]) {
         const sched = grp.schedules[qIdx];
-        if (sched) {
-          if (sp) return Math.min(sp.lessons, sched[dow] || 0);
-          return sched[dow] || 0;
+        // Если для этого дня недели есть конкретное значение — берём его
+        if (sched[dow] !== undefined) {
+          grpLessons = sched[dow];
         }
       }
     }
+    return sp ? Math.min(sp.lessons, grpLessons) : grpLessons;
   }
 
-  // Стандартная логика
-  if (sp) return sp.lessons;
-  const q = quarters.find(q => dateStr >= q.from && dateStr <= q.to);
-  if (q && q.schedule) return q.schedule[dow] || 0;
-  return schedule[dow] || 0;
+  // 3. Обычный класс или ученик без группы
+  return sp ? Math.min(sp.lessons, baseLessons) : baseLessons;
 }
 
 function isEducationDay(dateStr) {
@@ -1312,8 +1323,21 @@ async function updateGroupSchedule(id, dow, val) {
   const grp = classGroups.find(g => g.id === id);
   if (!grp) return;
   if (!grp.schedules) grp.schedules = {};
-  if (!grp.schedules[groupActiveQuarter]) grp.schedules[groupActiveQuarter] = {};
+  
+  // Создаём объект для четверти, если его нет
+  if (!grp.schedules[groupActiveQuarter]) {
+    grp.schedules[groupActiveQuarter] = { 1: 7, 2: 7, 3: 7, 4: 7, 5: 7 };
+  } else {
+    // Если объект есть, но каких-то дней не хватает — заполняем их семёрками
+    for (let d = 1; d <= 5; d++) {
+      if (grp.schedules[groupActiveQuarter][d] === undefined) {
+        grp.schedules[groupActiveQuarter][d] = 7;
+      }
+    }
+  }
+  
   grp.schedules[groupActiveQuarter][dow] = Math.max(0, parseInt(val, 10) || 0);
+  
   await sb.from('class_groups').update({ schedules: grp.schedules }).eq('id', id);
   toast('Расписание группы обновлено');
 }
