@@ -530,6 +530,7 @@ function render() {
   const day = getDayData();
   const total = students.length;
   const absentCount = Object.keys(day).length;
+  
   statsEl.innerHTML = `
     <div class="stat total"><div class="label">Всего</div><div class="value">${total}</div></div>
     <div class="stat present"><div class="label">Присутствуют</div><div class="value">${total - absentCount}</div></div>
@@ -566,18 +567,21 @@ function render() {
 
     const cur = day[i] || null;
     const curReason = cur?.reason || '';
+    const isHome = studentHomeschooled[studentIds[i]];
+    
     // ВАЖНО: Уроки для конкретного ученика с учетом его группы
     const lessonsToday = getDayLessons(dateInput.value, studentIds[i]); 
 
     const tr = document.createElement('tr');
-    if (curReason) tr.className = 'r-' + curReason;
+    if (curReason && !isHome) tr.className = 'r-' + curReason;
+    if (isHome) tr.style.opacity = '0.7'; // Визуально выделяем надомников
 
     const options = Object.entries(REASONS).map(([val, r]) =>
       `<option value="${val}"${val === curReason ? ' selected' : ''}>${r.emoji} ${r.label}</option>`
     ).join('');
 
     let detailHtml = '';
-    if (curReason) {
+    if (curReason && !isHome) {
       if (expandedRows.has(i)) {
         let fieldsHtml = '';
         if (lessonsToday > 0) {
@@ -614,12 +618,28 @@ function render() {
     const hasNote = studentNotes[studentIds[i]];
     const noteIcon = hasNote ? `<span class="note-icon" title="${escapeHtml(hasNote)}" data-index="${i}">📝</span>` : '';
 
+    // Блок статуса
+    let statusHtml = '';
+    if (isHome) {
+      statusHtml = `<span class="badge" style="background:rgba(251,191,36,0.15); color:#fbbf24;">🏠 Надомное</span>`;
+    } else {
+      statusHtml = `<span class="badge ${curReason ? 'absent' : 'present'}">${curReason ? '🔴 Отсутствует' : '🟢 Присутствует'}</span>`;
+    }
+
+    // Блок причин (селект)
+    let selectHtml = '';
+    if (isHome) {
+      selectHtml = `<select class="reason-select" disabled style="opacity:0.5;"><option>Не требуется</option></select>`;
+    } else {
+      selectHtml = `<select class="reason-select ${curReason ? 'v-' + curReason : ''}" data-index="${i}">${options}</select>${detailHtml}`;
+    }
+
     tr.innerHTML = `
-      <td><input type="checkbox" class="chk-student" data-index="${i}" ${selectedStudents.has(i) ? 'checked' : ''}></td>
+      <td><input type="checkbox" class="chk-student" data-index="${i}" ${selectedStudents.has(i) ? 'checked' : ''} ${isHome ? 'disabled' : ''}></td>
       <td style="color:var(--muted);font-weight:600;">${i + 1}</td>
-      <td class="student-name"><span class="name-text" data-index="${i}">${escapeHtml(name)}</span>${noteIcon}<button class="btn-quick-interval" data-index="${i}" title="Добавить интервал">📅</button></td>
-      <td><span class="badge ${curReason ? 'absent' : 'present'}">${curReason ? '🔴 Отсутствует' : '🟢 Присутствует'}</span></td>
-      <td><select class="reason-select ${curReason ? 'v-' + curReason : ''}" data-index="${i}">${options}</select>${detailHtml}</td>`;
+      <td class="student-name"><span class="name-text" data-index="${i}">${escapeHtml(name)}</span>${noteIcon}${!isHome ? `<button class="btn-quick-interval" data-index="${i}" title="Добавить интервал">📅</button>` : ''}</td>
+      <td>${statusHtml}</td>
+      <td>${selectHtml}</td>`;
     frag.appendChild(tr);
   });
 
@@ -753,10 +773,22 @@ function openStudentStats(idx) {
     </div>
   ` : '';
 
+  // Блок надомного обучения
+  const homeHtml = `
+    <div class="form-group" style="margin-top:15px; background: rgba(var(--primary-rgb), 0.05); padding: 10px; border-radius: 10px; border: 1px solid var(--border);">
+      <label style="display:flex; align-items:center; gap:8px; cursor:pointer; color:var(--text); margin:0;">
+        <input type="checkbox" id="studentHomeschooledInput" ${studentHomeschooled[studentIds[idx]] ? 'checked' : ''} style="width:18px; height:18px;">
+        🏠 Надомное обучение
+      </label>
+      <small style="display:block; margin-top:4px; font-size:11px; color:var(--muted);">Ученик не посещает школу. В журнале будет отображаться отдельно.</small>
+    </div>
+  `;
+
   const html = `
     <p class="hint" style="margin-bottom:12px;">Всего пропусков (дней): <b style="color:var(--danger); font-size:16px;">${totalAbs}</b></p>
     <div class="stats-bar-student">${rowsHtml || '<div class="empty-state">Пропусков нет</div>'}</div>
     ${groupHtml}
+    ${homeHtml}
     <div class="form-group" style="margin-top:15px;">
       <label>Заметка к ученику (видна только вам)</label>
       <textarea id="studentNoteInput" style="min-height:80px;" placeholder="Например: аллергия на физкультуру...">${escapeHtml(note)}</textarea>
