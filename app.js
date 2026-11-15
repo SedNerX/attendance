@@ -60,14 +60,12 @@ const statusDot = document.getElementById('statusDot');
 const saveStatus = document.getElementById('saveStatus');
 
 function defaultQuarters() {
-  const now = new Date();
-  const y = now.getMonth() >= 8 ? now.getFullYear() : now.getFullYear() - 1;
   const defaultSched = { 0:0, 1:7, 2:7, 3:7, 4:7, 5:7, 6:0 };
   return [
-    { name: '1 четверть', from: `${y}-09-01`, to: `${y}-10-30`, schedule: { ...defaultSched } },
-    { name: '2 четверть', from: `${y}-11-01`, to: `${y}-12-24`, schedule: { ...defaultSched } },
-    { name: '3 четверть', from: `${y+1}-01-08`, to: `${y+1}-03-23`, schedule: { ...defaultSched } },
-    { name: '4 четверть', from: `${y+1}-04-01`, to: `${y+1}-05-31`, schedule: { ...defaultSched } }
+    { name: '1 четверть', from: '2026-09-01', to: '2026-10-31', schedule: { ...defaultSched } },
+    { name: '2 четверть', from: '2026-11-09', to: '2026-12-24', schedule: { ...defaultSched } },
+    { name: '3 четверть', from: '2027-01-11', to: '2027-03-20', schedule: { ...defaultSched } },
+    { name: '4 четверть', from: '2027-03-29', to: '2027-05-31', schedule: { ...defaultSched } }
   ];
 }
 
