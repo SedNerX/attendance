@@ -57,6 +57,10 @@
           <span class="side-icon-wrap"><span class="side-icon">📊</span></span>
           <span class="side-body"><span class="side-label">Отчёты</span><span class="side-sub">Три отчёта</span></span>
         </button>
+        <button class="side-btn" data-tab="documents">
+          <span class="side-icon-wrap"><span class="side-icon">📄</span></span>
+          <span class="side-body"><span class="side-label">Документы</span><span class="side-sub">Справки и заявления</span></span>
+        </button>
         <button class="side-btn" data-tab="settings">
           <span class="side-icon-wrap"><span class="side-icon">⚙️</span></span>
           <span class="side-body"><span class="side-label">Настройки</span><span class="side-sub">Класс, четверти</span></span>
@@ -307,6 +311,45 @@
               <button class="btn-primary" onclick="runYearSummary()">Сформировать</button>
             </div>
             <div id="yearOutput"><div class="report-block"><div class="empty-state"><span class="emoji">📅</span>Нажмите «Сформировать», чтобы построить сводку</div></div></div>
+          </div>
+        </section>
+
+        <section class="tab-panel" id="tab-documents">
+          <div class="ux-section-header">
+            <span class="ux-overline">УЧЁТ ДОКУМЕНТОВ</span>
+            <h2>Справки и заявления</h2>
+            <p>Список пропусков, на которые еще не принесены подтверждающие документы. Красным выделены просроченные (более 15 дней).</p>
+          </div>
+          
+          <div class="report-controls" style="margin-bottom: 20px;">
+            <label>📅 Период:</label>
+            <select class="quarter-select" id="docQuarterSelect" onchange="renderDocumentsList()"></select>
+            
+            <label style="display:flex; align-items:center; gap:6px; margin-left: 15px; cursor:pointer;">
+              <input type="checkbox" id="docShowOverdue" onchange="renderDocumentsList()">
+              Показать только просроченные
+            </label>
+
+            <button class="btn-secondary" onclick="renderDocumentsList()" style="margin-left:auto;">↻ Обновить</button>
+          </div>
+
+          <div class="card">
+            <div class="table-wrap">
+              <table class="report-table exact-table">
+                <thead>
+                  <tr>
+                    <th>Ученик</th>
+                    <th>Период</th>
+                    <th>Дней</th>
+                    <th>Причина</th>
+                    <th style="width: 180px;">Действие</th>
+                  </tr>
+                </thead>
+                <tbody id="documentsListTbody">
+                  <!-- Сюда JS будет выводить строки -->
+                </tbody>
+              </table>
+            </div>
           </div>
         </section>
 
