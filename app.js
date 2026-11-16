@@ -4,6 +4,7 @@ const SUPABASE_URL = 'https://tzslxobwueqwecxpowqm.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_tcGF06S2ICA4NNw7T0S0xw_aRee02qV';
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+let selectedDocIntervals = new Set();
 let currentUser = null;
 let currentClassId = null;
 let studentIds = [];
@@ -1559,7 +1560,7 @@ function switchTab(name) {
   
   if (name === 'settings') loadSettingsForm();
   if (name === 'reports') initReportDates();
-  if (name === 'documents') initDocumentsTab();
+  if (name === 'documents') initDocumentsTab(); // <--- ЭТО ДОЛЖНО БЫТЬ
   
   const body = document.body;
   body.classList.remove('tab-attendance-active', 'tab-reports-active', 'tab-settings-active', 'tab-documents-active');
@@ -1590,6 +1591,13 @@ function renderDocumentsList() {
   const q = quarters[docActiveQuarter];
   if (!q) return;
 
+  // Очищаем выделение при перерисовке
+  selectedDocIntervals.clear();
+  const btnBulk = document.getElementById('docBulkBtn');
+  if (btnBulk) btnBulk.style.display = 'none';
+  const selAll = document.getElementById('docSelectAll');
+  if (selAll) selAll.checked = false;
+
   const onlyOverdue = document.getElementById('docShowOverdue').checked;
   const tbody = document.getElementById('documentsListTbody');
   const intervals = [];
@@ -1599,6 +1607,7 @@ function renderDocumentsList() {
     const dayAbs = absences[dateStr] || {};
     Object.entries(dayAbs).forEach(([idxStr, a]) => {
       const idx = parseInt(idxStr, 10);
+      // Фильтр причин: medical, parents_family, parents_health, survey, sport
       const needDoc = ['medical', 'parents_family', 'parents_health', 'survey', 'sport'].includes(a.reason);
       if (needDoc && !a.doc && !a.archived) {
         intervals.push({ dateStr, idx, reason: a.reason });
@@ -1607,7 +1616,7 @@ function renderDocumentsList() {
   });
 
   if (intervals.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state"><span class="emoji">🎉</span>Все документы сданы! Долгов нет.</div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><span class="emoji">🎉</span>Все документы сданы! Долгов нет.</div></td></tr>`;
     return;
   }
 
@@ -1669,8 +1678,11 @@ function renderDocumentsList() {
       actionHtml += ` <button class="btn-secondary" onclick="archiveDoc('${row.start}', '${row.end}', ${row.idx})" style="padding: 6px 10px; font-size: 11px;" title="Скрыть из списка">🚫 Списать</button>`;
     }
 
+    const rowKey = `${row.idx}_${row.start}_${row.end}`;
+
     rowsHtml.push(`
       <tr style="${isOverdue ? 'background: rgba(239, 68, 68, 0.05);' : ''}">
+        <td><input type="checkbox" class="doc-row-chk" data-key="${rowKey}" onchange="toggleDocRow(this)" style="width:16px; height:16px; cursor:pointer;"></td>
         <td style="text-align:left; padding-left:15px; font-weight:600;">${escapeHtml(name)}</td>
         <td>${dateRange}</td>
         <td>${row.dates.length}</td>
@@ -1680,10 +1692,106 @@ function renderDocumentsList() {
   });
 
   if (rowsHtml.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state">Нет документов, требующих внимания по выбранному фильтру.</div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state">Нет документов, требующих внимания по выбранному фильтру.</div></td></tr>`;
   } else {
     tbody.innerHTML = rowsHtml.join('');
   }
+}
+
+// Обработчик клика по одному чекбоксу
+window.toggleDocRow = function(chk) {
+  const key = chk.dataset.key;
+  if (chk.checked) selectedDocIntervals.add(key);
+  else selectedDocIntervals.delete(key);
+  
+  const btn = document.getElementById('docBulkBtn');
+  if (btn) btn.style.display = selectedDocIntervals.size > 0 ? 'inline-flex' : 'none';
+};
+
+// Обработчик клика по чекбоксу "Выделить все"
+window.toggleDocSelectAll = function(chk) {
+  const boxes = document.querySelectorAll('.doc-row-chk');
+  boxes.forEach(b => {
+    b.checked = chk.checked;
+    const key = b.dataset.key;
+    if (chk.checked) selectedDocIntervals.add(key);
+    else selectedDocIntervals.delete(key);
+  });
+  const btn = document.getElementById('docBulkBtn');
+  if (btn) btn.style.display = selectedDocIntervals.size > 0 ? 'inline-flex' : 'none';
+};
+
+// Массовое сохранение выбранных
+async function markSelectedDocsProvided() {
+  if (selectedDocIntervals.size === 0) return;
+  if (!confirm(`Отметить документы сданными для ${selectedDocIntervals.size} записей?`)) return;
+
+  const datesToSave = new Set();
+
+  for (const key of selectedDocIntervals) {
+    const [idxStr, start, end] = key.split('_');
+    const idx = parseInt(idxStr, 10);
+    
+    let d = new Date(start + 'T00:00:00');
+    const endD = new Date(end + 'T00:00:00');
+    
+    while (d <= endD) {
+      const str = formatDate(d);
+      if (absences[str]?.[idx]) {
+        absences[str][idx].doc = true;
+        datesToSave.add(str);
+      }
+      d.setDate(d.getDate() + 1);
+    }
+  }
+
+  await Promise.all(Array.from(datesToSave).map(saveAbsencesForDay));
+  
+  selectedDocIntervals.clear();
+  const btn = document.getElementById('docBulkBtn');
+  if (btn) btn.style.display = 'none';
+  const selectAll = document.getElementById('docSelectAll');
+  if (selectAll) selectAll.checked = false;
+  
+  toast('Выбранные документы отмечены как сданные');
+  renderDocumentsList();
+  render();
+}
+
+// Кнопка "Все сдали" (которая была вверху)
+async function markAllDocsProvided() {
+  const sel = document.getElementById('docQuarterSelect');
+  if (!sel) return;
+  const q = quarters[parseInt(sel.value, 10)];
+  if (!q) return;
+
+  if (!confirm(`Вы уверены, что хотите отметить ВСЕ документы за ${q.name} как сданные?`)) return;
+
+  const datesToSaveSet = new Set();
+
+  const eduDays = getEducationDays(q.from, q.to);
+  eduDays.forEach(dateStr => {
+    const dayAbs = absences[dateStr] || {};
+    Object.entries(dayAbs).forEach(([idxStr, a]) => {
+      const needDoc = ['medical', 'parents_family', 'parents_health', 'survey', 'sport'].includes(a.reason);
+      if (needDoc && !a.doc && !a.archived) {
+        a.doc = true;
+        datesToSaveSet.add(dateStr);
+      }
+    });
+  });
+
+  const datesToSave = Array.from(datesToSaveSet);
+  if (!datesToSave.length) {
+    toast('Нет документов, которые нужно сдавать');
+    return;
+  }
+
+  await Promise.all(datesToSave.map(saveAbsencesForDay));
+  
+  toast(`Все документы за ${q.name} отмечены как сданные`);
+  renderDocumentsList();
+  render();
 }
 
 async function markDocProvided(startDate, endDate, idx) {
