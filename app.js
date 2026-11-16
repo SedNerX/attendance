@@ -13,11 +13,12 @@ let searchQuery = '';
 let selectedStudents = new Set();
 let studentNotes = {};
 let classGroups = [];
-let studentHomeschooled = {};
 let studentGroups = {};
+let studentHomeschooled = {};
 let isProfiled = false;
+let groupActiveQuarter = 0;
 let activeQuarterTab = 0;
-let groupActiveQuarter = {}; // Для хранения вкладок четвертей в настройках групп
+let docActiveQuarter = 0;
 
 const REASONS = {
   '': { label: 'Присутствует', emoji: '✅', cls: '' },
@@ -62,12 +63,14 @@ const statusDot = document.getElementById('statusDot');
 const saveStatus = document.getElementById('saveStatus');
 
 function defaultQuarters() {
+  const now = new Date();
+  const y = now.getMonth() >= 8 ? now.getFullYear() : now.getFullYear() - 1;
   const defaultSched = { 0:0, 1:7, 2:7, 3:7, 4:7, 5:7, 6:0 };
   return [
-    { name: '1 четверть', from: '2026-09-01', to: '2026-10-31', schedule: { ...defaultSched } },
-    { name: '2 четверть', from: '2026-11-09', to: '2026-12-24', schedule: { ...defaultSched } },
-    { name: '3 четверть', from: '2027-01-11', to: '2027-03-20', schedule: { ...defaultSched } },
-    { name: '4 четверть', from: '2027-03-29', to: '2027-05-31', schedule: { ...defaultSched } }
+    { name: '1 четверть', from: `${y}-09-01`, to: `${y}-10-31`, schedule: { ...defaultSched } },
+    { name: '2 четверть', from: `${y}-11-09`, to: `${y}-12-24`, schedule: { ...defaultSched } },
+    { name: '3 четверть', from: `${y+1}-01-11`, to: `${y+1}-03-20`, schedule: { ...defaultSched } },
+    { name: '4 четверть', from: `${y+1}-03-29`, to: `${y+1}-05-31`, schedule: { ...defaultSched } }
   ];
 }
 
@@ -113,17 +116,14 @@ function getQuarterIndexForDate(dateStr) {
   return quarters.findIndex(q => dateStr >= q.from && dateStr <= q.to);
 }
 
-// Главная функция подсчета уроков (учитывает группы)
 function getDayLessons(dateStr, studentId = null) {
   const dow = dowOf(dateStr);
   const sp = getSpecialDay(dateStr);
   
-  // Выходные и исключённые дни
   if (dow === 0 || dow === 6 || excludedDates.includes(dateStr)) {
      if (!sp) return 0;
   }
 
-  // 1. Базовое расписание (для обычных классов)
   let baseLessons = 7;
   const q = quarters.find(q => dateStr >= q.from && dateStr <= q.to);
   if (q && q.schedule && q.schedule[dow] !== undefined) {
@@ -132,26 +132,19 @@ function getDayLessons(dateStr, studentId = null) {
     baseLessons = schedule[dow];
   }
 
-  // 2. Если профильный класс и ученик в группе
   if (isProfiled && studentId && studentGroups[studentId]) {
     const grp = classGroups.find(g => g.id === studentGroups[studentId]);
-    let grpLessons = 7; // По умолчанию для профильного класса — 7 уроков
-    
+    let grpLessons = 7; 
     if (grp && grp.schedules) {
       const qIdx = getQuarterIndexForDate(dateStr);
-      // Если для этой четверти есть настройки группы
       if (qIdx !== -1 && grp.schedules[qIdx]) {
         const sched = grp.schedules[qIdx];
-        // Если для этого дня недели есть конкретное значение — берём его
-        if (sched[dow] !== undefined) {
-          grpLessons = sched[dow];
-        }
+        if (sched[dow] !== undefined) grpLessons = sched[dow];
       }
     }
     return sp ? Math.min(sp.lessons, grpLessons) : grpLessons;
   }
 
-  // 3. Обычный класс или ученик без группы
   return sp ? Math.min(sp.lessons, baseLessons) : baseLessons;
 }
 
@@ -184,10 +177,8 @@ function setAccent(hex, rgbStr) {
   document.documentElement.style.setProperty('--primary-hover', hex);
   document.documentElement.style.setProperty('--primary-dark', hex);
   localStorage.setItem(LS_ACCENT, JSON.stringify({ hex, rgbStr }));
-  
   const target = normalizeRgb(rgbStr).replace(/\s/g, '');
   const targetRgba = `rgba(${target.slice(4, -1)},1)`;
-  
   document.querySelectorAll('.color-dot').forEach(dot => {
     const current = getComputedStyle(dot).backgroundColor.replace(/\s/g, '');
     dot.classList.toggle('active', current === target || current === targetRgba);
@@ -197,9 +188,7 @@ function setAccent(hex, rgbStr) {
 function loadPrefs() {
   let th = localStorage.getItem(LS_THEME) || 'light';
   const isNewYearSeason = document.body.classList.contains('newyear');
-  if (isNewYearSeason && (!localStorage.getItem(LS_THEME) || localStorage.getItem(LS_THEME) === 'auto')) {
-    th = 'dark';
-  }
+  if (isNewYearSeason && (!localStorage.getItem(LS_THEME) || localStorage.getItem(LS_THEME) === 'auto')) th = 'dark';
   let ac = null;
   try { ac = JSON.parse(localStorage.getItem(LS_ACCENT) || 'null'); } catch (e) { ac = null; }
   setTheme(th);
@@ -239,7 +228,7 @@ async function doLogout() {
   currentUser = null; currentClassId = null; studentIds = []; students = []; absences = {}; studentNotes = {};
   undoStack = []; searchQuery = ''; selectedStudents.clear(); expandedRows.clear();
   schedule = { 0:0, 1:7, 2:7, 3:7, 4:7, 5:7, 6:0 }; excludedDates = []; specialDays = []; quarters = []; className = '';
-  classGroups = []; studentGroups = {}; isProfiled = false;
+  classGroups = []; studentGroups = {}; studentHomeschooled = {}; isProfiled = false;
   lastReport1 = null; lastReport2 = null;
   activeSaves = 0; lastSaveError = false; saveChains.clear();
   statusDot.className = 'status-dot connected'; saveStatus.textContent = '';
@@ -307,7 +296,6 @@ async function afterLogin(user) {
 async function loadAll() {
   statusDot.className = 'status-dot connected';
 
-  // Загрузка учеников (с group_id и is_homeschooled)
   const { data: st, error: stErr } = await sb.from('students').select('id, full_name, position, note, group_id, is_homeschooled').eq('class_id', currentClassId).order('position');
   if (stErr) {
     toast('Ошибка загрузки учеников: ' + stErr.message);
@@ -323,13 +311,11 @@ async function loadAll() {
     });
   }
 
-  // Загрузка пропусков
   absences = {};
   if (studentIds.length) {
     const { data: ab, error: abErr } = await sb.from('absences').select('*').in('student_id', studentIds);
-    if (abErr) {
-      toast('Ошибка загрузки пропусков: ' + abErr.message);
-    } else {
+    if (abErr) { toast('Ошибка загрузки пропусков: ' + abErr.message); } 
+    else {
       const idToIdx = new Map();
       studentIds.forEach((id, i) => idToIdx.set(String(id), i));
       (ab || []).forEach(a => {
@@ -337,22 +323,19 @@ async function loadAll() {
         if (idx === undefined) return;
         if (!absences[a.date]) absences[a.date] = {};
         absences[a.date][idx] = {
-          reason: a.reason,
-          full: a.is_full_day !== false,
-          from: a.lesson_from,
-          to: a.lesson_to,
-          comment: a.comment || '',
-          medical_reason: a.medical_reason || ''
+          reason: a.reason, full: a.is_full_day !== false,
+          from: a.lesson_from, to: a.lesson_to,
+          comment: a.comment || '', medical_reason: a.medical_reason || '',
+          doc: a.is_document_provided || false,
+          archived: a.is_document_archived || false
         };
       });
     }
   }
 
-  // Загрузка настроек класса
   const { data: cfg, error: cfgErr } = await sb.from('class_settings').select('*').eq('class_id', currentClassId).maybeSingle();
-  if (cfgErr) {
-    toast('Ошибка загрузки настроек: ' + cfgErr.message);
-  } else if (cfg) {
+  if (cfgErr) { toast('Ошибка загрузки настроек: ' + cfgErr.message); } 
+  else if (cfg) {
     schedule = cfg.schedule || schedule;
     quarters = (Array.isArray(cfg.quarters) && cfg.quarters.length === 4) ? cfg.quarters : defaultQuarters();
     excludedDates = Array.isArray(cfg.excluded_dates) ? cfg.excluded_dates : [];
@@ -363,7 +346,6 @@ async function loadAll() {
   if (!quarters.length) quarters = defaultQuarters();
   if (!Object.keys(schedule).length) schedule = { 0:0, 1:7, 2:7, 3:7, 4:7, 5:7, 6:0 };
 
-  // Загрузка групп класса
   const { data: grps } = await sb.from('class_groups').select('*').eq('class_id', currentClassId);
   classGroups = grps || [];
 }
@@ -421,7 +403,9 @@ async function doSaveAbsencesForDay(day) {
           lesson_from: a.full === false ? a.from : null,
           lesson_to: a.full === false ? a.to : null,
           comment: a.comment || null,
-          medical_reason: a.reason === 'medical' ? (a.medical_reason || null) : null
+          medical_reason: a.reason === 'medical' ? (a.medical_reason || null) : null,
+          is_document_provided: a.doc || false,
+          is_document_archived: a.archived || false
         });
       }
     });
@@ -568,13 +552,11 @@ function render() {
     const cur = day[i] || null;
     const curReason = cur?.reason || '';
     const isHome = studentHomeschooled[studentIds[i]];
-    
-    // ВАЖНО: Уроки для конкретного ученика с учетом его группы
     const lessonsToday = getDayLessons(dateInput.value, studentIds[i]); 
 
     const tr = document.createElement('tr');
     if (curReason && !isHome) tr.className = 'r-' + curReason;
-    if (isHome) tr.style.opacity = '0.7'; // Визуально выделяем надомников
+    if (isHome) tr.style.background = 'rgba(251,191,36,0.04)';
 
     const options = Object.entries(REASONS).map(([val, r]) =>
       `<option value="${val}"${val === curReason ? ' selected' : ''}>${r.emoji} ${r.label}</option>`
@@ -602,6 +584,18 @@ function render() {
             <option value="">-- Уточните причину справки (необязательно) --</option>${medOptions}
           </select>`;
         }
+
+        // ГАЛОЧКА ДОКУМЕНТА
+        const needDoc = ['medical', 'health_admin', 'parents_family', 'parents_health'].includes(curReason);
+        if (needDoc) {
+          fieldsHtml += `
+            <label style="display:flex; align-items:center; gap:8px; margin-bottom:8px; font-size:12px; color:var(--text); cursor:pointer; user-select:none; background:rgba(var(--primary-rgb),0.05); padding:6px 10px; border-radius:8px; border:1px solid var(--border);">
+              <input type="checkbox" class="doc-checkbox" data-index="${i}" ${cur.doc ? 'checked' : ''} style="width:16px; height:16px; margin:0;">
+              📄 Документ сдан
+            </label>
+          `;
+        }
+
         fieldsHtml += `<input type="text" class="comment-input" data-index="${i}" placeholder="Комментарий (справка №...)" value="${escapeHtml(cur.comment || '')}">`;
         detailHtml = `<div class="row-details">${fieldsHtml}<div class="row-details-actions"><button class="btn-collapse-row" data-index="${i}">✓ Свернуть</button></div></div>`;
       } else {
@@ -618,7 +612,6 @@ function render() {
     const hasNote = studentNotes[studentIds[i]];
     const noteIcon = hasNote ? `<span class="note-icon" title="${escapeHtml(hasNote)}" data-index="${i}">📝</span>` : '';
 
-    // Блок статуса
     let statusHtml = '';
     if (isHome) {
       statusHtml = `<span class="badge" style="background:rgba(251,191,36,0.15); color:#fbbf24;">🏠 Надомное</span>`;
@@ -626,18 +619,12 @@ function render() {
       statusHtml = `<span class="badge ${curReason ? 'absent' : 'present'}">${curReason ? '🔴 Отсутствует' : '🟢 Присутствует'}</span>`;
     }
 
-    // Блок причин (селект)
-    let selectHtml = '';
-    if (isHome) {
-      selectHtml = `<select class="reason-select" disabled style="opacity:0.5;"><option>Не требуется</option></select>`;
-    } else {
-      selectHtml = `<select class="reason-select ${curReason ? 'v-' + curReason : ''}" data-index="${i}">${options}</select>${detailHtml}`;
-    }
+    const selectHtml = `<select class="reason-select ${curReason ? 'v-' + curReason : ''}" data-index="${i}">${options}</select>${detailHtml}`;
 
     tr.innerHTML = `
-      <td><input type="checkbox" class="chk-student" data-index="${i}" ${selectedStudents.has(i) ? 'checked' : ''} ${isHome ? 'disabled' : ''}></td>
+      <td><input type="checkbox" class="chk-student" data-index="${i}" ${selectedStudents.has(i) ? 'checked' : ''}></td>
       <td style="color:var(--muted);font-weight:600;">${i + 1}</td>
-      <td class="student-name"><span class="name-text" data-index="${i}">${escapeHtml(name)}</span>${noteIcon}${!isHome ? `<button class="btn-quick-interval" data-index="${i}" title="Добавить интервал">📅</button>` : ''}</td>
+      <td class="student-name"><span class="name-text" data-index="${i}">${escapeHtml(name)}</span>${noteIcon}<button class="btn-quick-interval" data-index="${i}" title="Добавить интервал">📅</button></td>
       <td>${statusHtml}</td>
       <td>${selectHtml}</td>`;
     frag.appendChild(tr);
@@ -669,6 +656,7 @@ function setupTableDelegation() {
       setPartial(idx, f === '' ? null : parseInt(f, 10), tt === '' ? null : parseInt(tt, 10));
       render();
     } else if (t.classList.contains('comment-input')) setComment(parseInt(t.dataset.index, 10), t.value);
+    else if (t.classList.contains('doc-checkbox')) setDocumentStatus(parseInt(t.dataset.index, 10), t.checked);
   });
 
   tbody.addEventListener('click', e => {
@@ -761,7 +749,6 @@ function openStudentStats(idx) {
   const labels = { medical: 'Мед. справка', health_admin: 'По состоянию здоровья (с разр.)', parents_family: 'Заявление родителей (семейные)', parents_health: 'Заявление родителей (по здоровью)', survey: 'Посещение врача', sport: 'Соревнования', cultural: 'Культ-массовые', ozdorovlenie: 'Санаторий', norespect: 'Без уважительной', other: 'Иная' };
   const rowsHtml = REASON_KEYS.filter(k => byReason[k] > 0).map(k => `<div class="stats-bar-item"><span>${labels[k]}</span><b>${byReason[k]}</b></div>`).join('');
 
-  // Блок выбора профильной группы
   const studentGroupId = studentGroups[studentIds[idx]] || '';
   const groupHtml = (isProfiled && classGroups.length) ? `
     <div class="form-group" style="margin-top:15px;">
@@ -773,7 +760,6 @@ function openStudentStats(idx) {
     </div>
   ` : '';
 
-  // Блок надомного обучения
   const homeHtml = `
     <div class="form-group" style="margin-top:15px; background: rgba(var(--primary-rgb), 0.05); padding: 10px; border-radius: 10px; border: 1px solid var(--border);">
       <label style="display:flex; align-items:center; gap:8px; cursor:pointer; color:var(--text); margin:0;">
@@ -822,6 +808,7 @@ async function saveStudentNote(idx) {
   document.getElementById('studentStatsBackdrop').classList.remove('open');
   toast('Сохранено');
   render();
+  logAction(`Обновлены настройки ученика ${students[idx]}`);
 }
 
 function openIntervalModal(prefillIdx) {
@@ -879,7 +866,7 @@ async function saveInterval() {
 
   for (const d of affected) {
     if (!absences[d]) absences[d] = {};
-    absences[d][idx] = { reason, full: true, comment, medical_reason: reason === 'medical' ? medReason : '' };
+    absences[d][idx] = { reason, full: true, comment, medical_reason: reason === 'medical' ? medReason : '', doc: false, archived: false };
   }
   closeIntervalModal(); expandedRows.clear(); selectedStudents.clear(); updateBulkPanel(); render();
   for (const d of affected) await saveAbsencesForDay(d);
@@ -898,9 +885,9 @@ function setReason(idx, reason) {
   const prev = absences[d][idx];
   if (!reason) { delete absences[d][idx]; } 
   else if (prev && prev.reason && prev.full === false) {
-    absences[d][idx] = { reason, full: false, from: prev.from, to: prev.to, comment: prev.comment, medical_reason: reason === 'medical' ? (prev.medical_reason || '') : '' };
+    absences[d][idx] = { reason, full: false, from: prev.from, to: prev.to, comment: prev.comment, medical_reason: reason === 'medical' ? (prev.medical_reason || '') : '', doc: prev.doc || false, archived: prev.archived || false };
   } else {
-    absences[d][idx] = { reason, full: true, comment: prev ? prev.comment : '', medical_reason: reason === 'medical' ? (prev?.medical_reason || '') : '' };
+    absences[d][idx] = { reason, full: true, comment: prev ? prev.comment : '', medical_reason: reason === 'medical' ? (prev?.medical_reason || '') : '', doc: prev?.doc || false, archived: prev?.archived || false };
   }
   persistChange(`${formatDateRu(d)}: ${students[idx]} — ${REASONS[reason]?.label || 'Присутствует'}`);
 }
@@ -910,14 +897,13 @@ function setPartial(idx, from, to) {
   const d = dateInput.value;
   const cur = absences[d]?.[idx];
   if (!cur || !cur.reason) return;
-  // Берем уроки для конкретного ученика!
   const lessonsToday = getDayLessons(d, studentIds[idx]);
   const fOk = Number.isFinite(from) && from >= 1;
   const tOk = Number.isFinite(to) && to >= 1 && to >= from;
   if (!fOk || !tOk || (lessonsToday > 0 && from === 1 && to === lessonsToday)) {
-    absences[d][idx] = { reason: cur.reason, full: true, comment: cur.comment || '', medical_reason: cur.medical_reason || '' };
+    absences[d][idx] = { reason: cur.reason, full: true, comment: cur.comment || '', medical_reason: cur.medical_reason || '', doc: cur.doc || false, archived: cur.archived || false };
   } else {
-    absences[d][idx] = { reason: cur.reason, full: false, from, to, comment: cur.comment || '', medical_reason: cur.medical_reason || '' };
+    absences[d][idx] = { reason: cur.reason, full: false, from, to, comment: cur.comment || '', medical_reason: cur.medical_reason || '', doc: cur.doc || false, archived: cur.archived || false };
   }
   persistChange();
 }
@@ -936,6 +922,14 @@ function setMedicalReason(idx, medReason) {
   if (absences[d]?.[idx]) { absences[d][idx].medical_reason = medReason; persistChange(); }
 }
 
+function setDocumentStatus(idx, isChecked) {
+  pushUndo('Изменение статуса документа');
+  const d = dateInput.value;
+  if (!absences[d]?.[idx]) return;
+  absences[d][idx].doc = isChecked;
+  persistChange();
+}
+
 function openEditList() {
   document.getElementById('classListEditor').value = students.join('\n');
   document.getElementById('modalBackdrop').classList.add('open');
@@ -951,15 +945,10 @@ async function saveClassList() {
   const existingByPos = {};
   (existing || []).forEach(e => { existingByPos[e.position] = e.id; });
 
-  const toUpdate = [];
-  const toInsert = [];
+  const toUpdate = [], toInsert = [];
   for (let i = 0; i < lines.length; i++) {
-    if (existingByPos[i]) {
-      // Добавляем class_id, чтобы RLS разрешила обновление
-      toUpdate.push({ id: existingByPos[i], class_id: currentClassId, full_name: lines[i], position: i });
-    } else {
-      toInsert.push({ class_id: currentClassId, full_name: lines[i], position: i });
-    }
+    if (existingByPos[i]) toUpdate.push({ id: existingByPos[i], class_id: currentClassId, full_name: lines[i], position: i });
+    else toInsert.push({ class_id: currentClassId, full_name: lines[i], position: i });
   }
 
   const extras = (existing || []).filter(e => e.position >= lines.length).map(e => e.id);
@@ -1081,7 +1070,7 @@ function buildReport2(from, to, eduDays) {
     const dayAbs = absences[d] || {};
     for (const [idxStr, a] of Object.entries(dayAbs)) {
       const idx = parseInt(idxStr, 10);
-      // ВАЖНО: Берем уроки с учетом группы ученика!
+      if (studentHomeschooled[studentIds[idx]]) continue;
       const lessons = getDayLessons(d, studentIds[idx]); 
       let n = lessons;
       if (a.full === false) {
@@ -1255,17 +1244,11 @@ function exportExcel(reportNum) {
   toast('Excel скачан');
 }
 
-// ==========================================
-// НАСТРОЙКИ И УПРАВЛЕНИЕ ГРУППАМИ
-// ==========================================
-
 function loadSettingsForm() {
-  // --- АВТОВЫБОР ТЕКУЩЕЙ ЧЕТВЕРТИ ---
   const todayStrVal = todayStr();
   const currentQIdx = quarters.findIndex(q => todayStrVal >= q.from && todayStrVal <= q.to);
   groupActiveQuarter = currentQIdx !== -1 ? currentQIdx : 0;
   activeQuarterTab = groupActiveQuarter;
-  // ----------------------------------
 
   document.getElementById('classNameInput').value = className;
   
@@ -1279,7 +1262,6 @@ function loadSettingsForm() {
   renderSpecialDaysList();
 }
 
-// Новая функция для отрисовки кнопок-вкладок и одной карточки настроек
 function renderQuarterTabs() {
   const container = document.getElementById('quartersForm');
   if (!container) return;
@@ -1313,21 +1295,15 @@ function renderQuarterTabs() {
   container.innerHTML = html;
 }
 
-// Новая функция переключения вкладки
 function switchQuarterTab(idx) {
-  // Перед переключением нужно сохранить текущие введенные данные в память,
-  // чтобы они не потерялись, если пользователь не нажал "Сохранить"
   const q = quarters[activeQuarterTab];
   if (q) {
     q.from = document.getElementById(`qFrom${activeQuarterTab}`).value;
     q.to = document.getElementById(`qTo${activeQuarterTab}`).value;
     const newSched = { 0:0, 1:0, 2:0, 3:0, 4:0, 5:0, 6:0 };
-    for (let d = 1; d <= 5; d++) {
-      newSched[d] = Math.max(0, parseInt(document.getElementById(`qSched${activeQuarterTab}_${d}`).value) || 0);
-    }
+    for (let d = 1; d <= 5; d++) newSched[d] = Math.max(0, parseInt(document.getElementById(`qSched${activeQuarterTab}_${d}`).value) || 0);
     q.schedule = newSched;
   }
-  
   activeQuarterTab = idx;
   renderQuarterTabs();
 }
@@ -1336,10 +1312,8 @@ async function toggleProfiledClass(saveToDB = true) {
   const checkbox = document.getElementById('isProfiledCheckbox');
   if (!checkbox) return;
   isProfiled = checkbox.checked;
-  
   const wrapper = document.getElementById('regularScheduleWrapper');
   if (wrapper) wrapper.style.display = isProfiled ? 'none' : 'block';
-  
   renderGroups();
   if (saveToDB) await saveSettings();
 }
@@ -1352,7 +1326,6 @@ function renderGroups() {
   const list = document.getElementById('groupsList');
   if (!list) return;
   
-  // Кнопки выбора четверти (глобальные для всех групп)
   let quarterTabs = `<div style="display:flex; gap:5px; margin-bottom: 15px; flex-wrap:wrap;">`;
   quarters.forEach((q, i) => {
     quarterTabs += `<button class="btn-secondary" style="padding: 6px 12px; font-size: 11px; ${groupActiveQuarter === i ? 'background:var(--primary); color:#fff; border-color:var(--primary)' : ''}" onclick="switchGroupQuarter(${i})">${escapeHtml(q.name)}</button>`;
@@ -1365,7 +1338,7 @@ function renderGroups() {
   }
 
   list.innerHTML = quarterTabs + classGroups.map(g => {
-    const s = (g.schedules && g.schedules[groupActiveQuarter]) ? g.schedules[groupActiveQuarter] : {};
+    const s = (g.schedules && g.schedules[groupActiveQuarter]) ? g.schedules[groupActiveQuarter] : { 1:7, 2:7, 3:7, 4:7, 5:7 };
     return `<div style="padding: 15px; border: 1px solid var(--border); border-radius: 14px; margin-bottom: 12px; background: var(--input-bg);">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; gap: 10px;">
         <input type="text" value="${escapeHtml(g.name)}" 
@@ -1410,21 +1383,11 @@ async function updateGroupSchedule(id, dow, val) {
   const grp = classGroups.find(g => g.id === id);
   if (!grp) return;
   if (!grp.schedules) grp.schedules = {};
-  
-  // Создаём объект для четверти, если его нет
-  if (!grp.schedules[groupActiveQuarter]) {
-    grp.schedules[groupActiveQuarter] = { 1: 7, 2: 7, 3: 7, 4: 7, 5: 7 };
-  } else {
-    // Если объект есть, но каких-то дней не хватает — заполняем их семёрками
-    for (let d = 1; d <= 5; d++) {
-      if (grp.schedules[groupActiveQuarter][d] === undefined) {
-        grp.schedules[groupActiveQuarter][d] = 7;
-      }
-    }
+  if (!grp.schedules[groupActiveQuarter]) grp.schedules[groupActiveQuarter] = { 1: 7, 2: 7, 3: 7, 4: 7, 5: 7 };
+  else {
+    for (let d = 1; d <= 5; d++) if (grp.schedules[groupActiveQuarter][d] === undefined) grp.schedules[groupActiveQuarter][d] = 7;
   }
-  
   grp.schedules[groupActiveQuarter][dow] = Math.max(0, parseInt(val, 10) || 0);
-  
   await sb.from('class_groups').update({ schedules: grp.schedules }).eq('id', id);
   toast('Расписание группы обновлено');
 }
@@ -1446,20 +1409,14 @@ async function saveClassName() {
 async function saveQuarters() {
   const q = quarters[activeQuarterTab];
   if (!q) return;
-  
   q.from = document.getElementById('qFrom' + activeQuarterTab).value;
   q.to = document.getElementById('qTo' + activeQuarterTab).value;
-  
   const newSched = { 0:0, 1:0, 2:0, 3:0, 4:0, 5:0, 6:0 };
-  for (let d = 1; d <= 5; d++) {
-    newSched[d] = Math.max(0, parseInt(document.getElementById(`qSched${activeQuarterTab}_${d}`).value) || 0);
-  }
+  for (let d = 1; d <= 5; d++) newSched[d] = Math.max(0, parseInt(document.getElementById(`qSched${activeQuarterTab}_${d}`).value) || 0);
   q.schedule = newSched;
 
-  const ok = await saveSettings();
-  if (!ok) return;
-  refreshQuarterSelect();
-  toast('Сохранено');
+  const ok = await saveSettings(); if (!ok) return;
+  refreshQuarterSelect(); toast('Сохранено');
 }
 
 async function saveSchedule() {
@@ -1491,10 +1448,7 @@ async function addSpecialDay() {
   const date = document.getElementById('spDate').value;
   const lessons = Math.max(1, Math.min(15, parseInt(document.getElementById('spLessons').value, 10) || 1));
   if (!date) { alert('Выберите дату'); return; }
-  if (specialDays.find(s => s.date === date)) {
-    if (!confirm('Такая дата уже есть. Заменить?')) return;
-    specialDays = specialDays.filter(s => s.date !== date);
-  }
+  if (specialDays.find(s => s.date === date)) { if (!confirm('Такая дата уже есть. Заменить?')) return; specialDays = specialDays.filter(s => s.date !== date); }
   specialDays.push({ date, lessons }); specialDays.sort((a, b) => a.date.localeCompare(b.date));
   excludedDates = excludedDates.filter(d => d !== date);
   document.getElementById('excludedDatesEditor').value = excludedDates.join('\n');
@@ -1602,12 +1556,177 @@ function exportCSV() {
 function switchTab(name) {
   document.querySelectorAll('.side-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + name));
+  
   if (name === 'settings') loadSettingsForm();
   if (name === 'reports') initReportDates();
+  if (name === 'documents') initDocumentsTab();
   
   const body = document.body;
-  body.classList.remove('tab-attendance-active', 'tab-reports-active', 'tab-settings-active');
+  body.classList.remove('tab-attendance-active', 'tab-reports-active', 'tab-settings-active', 'tab-documents-active');
   body.classList.add('tab-' + name + '-active');
+}
+
+// ==========================================
+// ЛОГИКА ВКЛАДКИ "ДОКУМЕНТЫ"
+// ==========================================
+
+function initDocumentsTab() {
+  const sel = document.getElementById('docQuarterSelect');
+  if (!sel) return;
+  sel.innerHTML = quarters.map((q, i) => `<option value="${i}">${q.name}</option>`).join('');
+  
+  const today = todayStr();
+  const currentQIdx = quarters.findIndex(q => today >= q.from && today <= q.to);
+  docActiveQuarter = currentQIdx !== -1 ? currentQIdx : 0;
+  sel.value = docActiveQuarter;
+  
+  renderDocumentsList();
+}
+
+function renderDocumentsList() {
+  const sel = document.getElementById('docQuarterSelect');
+  if (!sel) return;
+  docActiveQuarter = parseInt(sel.value, 10);
+  const q = quarters[docActiveQuarter];
+  if (!q) return;
+
+  const onlyOverdue = document.getElementById('docShowOverdue').checked;
+  const tbody = document.getElementById('documentsListTbody');
+  const intervals = [];
+
+  const eduDays = getEducationDays(q.from, q.to);
+  eduDays.forEach(dateStr => {
+    const dayAbs = absences[dateStr] || {};
+    Object.entries(dayAbs).forEach(([idxStr, a]) => {
+      const idx = parseInt(idxStr, 10);
+      const needDoc = ['medical', 'health_admin', 'parents_family', 'parents_health'].includes(a.reason);
+      if (needDoc && !a.doc && !a.archived) {
+        intervals.push({ dateStr, idx, reason: a.reason });
+      }
+    });
+  });
+
+  if (intervals.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state"><span class="emoji">🎉</span>Все документы сданы! Долгов нет.</div></td></tr>`;
+    return;
+  }
+
+  const byStudent = {};
+  intervals.forEach(item => {
+    if (!byStudent[item.idx]) byStudent[item.idx] = [];
+    byStudent[item.idx].push(item);
+  });
+
+  const finalRows = [];
+  const today = new Date(todayStr());
+  today.setHours(0,0,0,0);
+
+  Object.entries(byStudent).forEach(([idxStr, items]) => {
+    const idx = parseInt(idxStr, 10);
+    items.sort((a, b) => a.dateStr.localeCompare(b.dateStr));
+    let currentInterval = null;
+
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (!currentInterval) {
+        currentInterval = { start: item.dateStr, end: item.dateStr, reason: item.reason, dates: [item.dateStr], idx };
+      } else {
+        const prevDate = new Date(currentInterval.end + 'T00:00:00');
+        let nextEduDate = new Date(prevDate);
+        nextEduDate.setDate(nextEduDate.getDate() + 1);
+        
+        while (!isEducationDay(formatDate(nextEduDate))) {
+          nextEduDate.setDate(nextEduDate.getDate() + 1);
+        }
+        
+        if (formatDate(nextEduDate) === item.dateStr && item.reason === currentInterval.reason) {
+          currentInterval.end = item.dateStr;
+          currentInterval.dates.push(item.dateStr);
+        } else {
+          finalRows.push(currentInterval);
+          currentInterval = { start: item.dateStr, end: item.dateStr, reason: item.reason, dates: [item.dateStr], idx };
+        }
+      }
+    }
+    if (currentInterval) finalRows.push(currentInterval);
+  });
+
+  const rowsHtml = [];
+  finalRows.forEach(row => {
+    const endDate = new Date(row.end + 'T00:00:00');
+    const diffDays = Math.ceil(Math.abs(today - endDate) / (1000 * 60 * 60 * 24));
+    const isOverdue = diffDays > 15;
+    
+    if (onlyOverdue && !isOverdue) return;
+
+    const name = students[row.idx];
+    const reasonLabel = REASONS[row.reason]?.label || row.reason;
+    const dateRange = row.start === row.end ? formatDateRu(row.start) : `${formatDateRu(row.start)} — ${formatDateRu(row.end)}`;
+    
+    let actionHtml = `<button class="btn-primary" onclick="markDocProvided('${row.start}', '${row.end}', ${row.idx})" style="padding: 6px 10px; font-size: 11px; background:${isOverdue ? '#ef4444' : ''};">✅ Сдан</button>`;
+    
+    if (isOverdue) {
+      actionHtml += ` <button class="btn-secondary" onclick="archiveDoc('${row.start}', '${row.end}', ${row.idx})" style="padding: 6px 10px; font-size: 11px;" title="Скрыть из списка">🚫 Списать</button>`;
+    }
+
+    rowsHtml.push(`
+      <tr style="${isOverdue ? 'background: rgba(239, 68, 68, 0.05);' : ''}">
+        <td style="text-align:left; padding-left:15px; font-weight:600;">${escapeHtml(name)}</td>
+        <td>${dateRange}</td>
+        <td>${row.dates.length}</td>
+        <td><span class="badge" style="background:rgba(var(--primary-rgb),0.1); color:var(--primary); font-size:11px;">${escapeHtml(reasonLabel)}</span></td>
+        <td>${isOverdue ? '⚠️ ' : ''}${actionHtml}</td>
+      </tr>`);
+  });
+
+  if (rowsHtml.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state">Нет документов, требующих внимания по выбранному фильтру.</div></td></tr>`;
+  } else {
+    tbody.innerHTML = rowsHtml.join('');
+  }
+}
+
+async function markDocProvided(startDate, endDate, idx) {
+  if (!confirm('Отметить, что документ сдан за весь этот период?')) return;
+  
+  let d = new Date(startDate + 'T00:00:00');
+  const endD = new Date(endDate + 'T00:00:00');
+  const datesToSave = [];
+  
+  while (d <= endD) {
+    const str = formatDate(d);
+    if (absences[str]?.[idx]) {
+      absences[str][idx].doc = true;
+      datesToSave.push(str);
+    }
+    d.setDate(d.getDate() + 1);
+  }
+  
+  await Promise.all(datesToSave.map(saveAbsencesForDay));
+  toast('Документ отмечен как сданный');
+  renderDocumentsList();
+  render();
+}
+
+async function archiveDoc(startDate, endDate, idx) {
+  if (!confirm('Списать документ? Он пропадет из списка, но в журнале причина останется.')) return;
+  
+  let d = new Date(startDate + 'T00:00:00');
+  const endD = new Date(endDate + 'T00:00:00');
+  const datesToSave = [];
+  
+  while (d <= endD) {
+    const str = formatDate(d);
+    if (absences[str]?.[idx]) {
+      absences[str][idx].archived = true;
+      datesToSave.push(str);
+    }
+    d.setDate(d.getDate() + 1);
+  }
+  
+  await Promise.all(datesToSave.map(saveAbsencesForDay));
+  toast('Документ списан');
+  renderDocumentsList();
 }
 
 function toast(msg) {
@@ -1629,9 +1748,9 @@ document.addEventListener('keydown', e => {
       selectedStudents.forEach(idx => {
         const prev = absences[d][idx];
         if (prev && prev.reason && prev.full === false) {
-          absences[d][idx] = { reason, full: false, from: prev.from, to: prev.to, comment: prev.comment, medical_reason: reason === 'medical' ? (prev.medical_reason || '') : '' };
+          absences[d][idx] = { reason, full: false, from: prev.from, to: prev.to, comment: prev.comment, medical_reason: reason === 'medical' ? (prev.medical_reason || '') : '', doc: prev.doc || false, archived: prev.archived || false };
         } else {
-          absences[d][idx] = { reason, full: true, comment: prev ? prev.comment : '', medical_reason: reason === 'medical' ? (prev?.medical_reason || '') : '' };
+          absences[d][idx] = { reason, full: true, comment: prev ? prev.comment : '', medical_reason: reason === 'medical' ? (prev?.medical_reason || '') : '', doc: prev?.doc || false, archived: prev?.archived || false };
         }
       });
       persistChange(`Массовое изменение статуса (${REASONS[reason].label})`);
