@@ -1599,7 +1599,7 @@ function renderDocumentsList() {
     const dayAbs = absences[dateStr] || {};
     Object.entries(dayAbs).forEach(([idxStr, a]) => {
       const idx = parseInt(idxStr, 10);
-      const needDoc = ['medical', 'health_admin', 'parents_family', 'parents_health'].includes(a.reason);
+      const needDoc = ['medical', 'parents_family', 'parents_health', 'survey', 'sport'].includes(a.reason);
       if (needDoc && !a.doc && !a.archived) {
         intervals.push({ dateStr, idx, reason: a.reason });
       }
