@@ -1708,6 +1708,44 @@ async function markDocProvided(startDate, endDate, idx) {
   render();
 }
 
+async function markAllDocsProvided() {
+  const sel = document.getElementById('docQuarterSelect');
+  if (!sel) return;
+  const q = quarters[parseInt(sel.value, 10)];
+  if (!q) return;
+
+  if (!confirm(`Вы уверены, что хотите отметить ВСЕ документы за ${q.name} как сданные?`)) return;
+
+  const datesToSaveSet = new Set(); // Используем Set, чтобы не дублировать дни
+
+  // Ищем все пропуски, требующие документа, в выбранной четверти
+  const eduDays = getEducationDays(q.from, q.to);
+  eduDays.forEach(dateStr => {
+    const dayAbs = absences[dateStr] || {};
+    Object.entries(dayAbs).forEach(([idxStr, a]) => {
+      const needDoc = ['medical', 'health_admin', 'parents_family', 'parents_health'].includes(a.reason);
+      // Если документ нужен и он ещё не сдан/не списан
+      if (needDoc && !a.doc && !a.archived) {
+        a.doc = true; // Ставим галочку в памяти
+        datesToSaveSet.add(dateStr); // Запоминаем день, который нужно сохранить
+      }
+    });
+  });
+
+  const datesToSave = Array.from(datesToSaveSet);
+  if (!datesToSave.length) {
+    toast('Нет документов, которые нужно сдавать');
+    return;
+  }
+
+  // Сохраняем все затронутые дни
+  await Promise.all(datesToSave.map(saveAbsencesForDay));
+  
+  toast(`Все документы за ${q.name} отмечены как сданные`);
+  renderDocumentsList(); // Обновляем список (он станет пустым)
+  render(); // Обновляем журнал, чтобы чекбоксы там тоже встали
+}
+
 async function archiveDoc(startDate, endDate, idx) {
   if (!confirm('Списать документ? Он пропадет из списка, но в журнале причина останется.')) return;
   
