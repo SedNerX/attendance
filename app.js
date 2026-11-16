@@ -1031,36 +1031,42 @@ function countDaysWithReason(idx, eduDays, reason) {
 }
 
 function buildReport1(from, to, eduDays) {
+  // Список причин, которые считаются "Уважительными с документами"
+  const RESP_REASONS = ['parents_family', 'survey', 'sport', 'cultural', 'ozdorovlenie'];
+
   const analysis = students.map((name, idx) => {
     const healthAdminMax = Math.max(maxConsecutiveFull(idx, eduDays, 'health_admin'), maxConsecutiveFull(idx, eduDays, 'parents_health'));
+    
+    // Считаем, сколько ВСЕГО полных дней ученик пропустил по уважительным причинам
+    let totalRespDays = 0;
+    for (const d of eduDays) {
+      const a = absences[d]?.[idx];
+      if (a && a.full && RESP_REASONS.includes(a.reason)) {
+        totalRespDays++;
+      }
+    }
+
     return {
       name,
       anyMax: maxConsecutiveFull(idx, eduDays),
       medMax: maxConsecutiveFull(idx, eduDays, 'medical'),
       healthAdminMax: healthAdminMax,
-      parentsMax: maxConsecutiveFull(idx, eduDays, 'parents_family'),
-      surveyMax: maxConsecutiveFull(idx, eduDays, 'survey'),
-      sportMax: maxConsecutiveFull(idx, eduDays, 'sport'),
-      culturalMax: maxConsecutiveFull(idx, eduDays, 'cultural'),
-      ozdMax: maxConsecutiveFull(idx, eduDays, 'ozdorovlenie'),
+      respTotalDays: totalRespDays, // <--- НОВОЕ ПОЛЕ
       norespMax: maxConsecutiveFull(idx, eduDays, 'norespect'),
       otherMax: maxConsecutiveFull(idx, eduDays, 'other')
     };
   });
+
   const f = pred => analysis.filter(pred).map(a => a.name);
-  const respSet = new Set([
-    ...f(a => a.parentsMax >= REPORT_CONSECUTIVE_DAYS),
-    ...f(a => a.surveyMax >= REPORT_CONSECUTIVE_DAYS),
-    ...f(a => a.sportMax >= REPORT_CONSECUTIVE_DAYS),
-    ...f(a => a.culturalMax >= REPORT_CONSECUTIVE_DAYS),
-    ...f(a => a.ozdMax >= REPORT_CONSECUTIVE_DAYS)
-  ]);
+
   return {
-    from, to, total: students.length,
+    from, to,
+    total: students.length,
     s3plus: f(a => a.anyMax >= REPORT_CONSECUTIVE_DAYS),
     med4: f(a => a.medMax >= REPORT_CONSECUTIVE_DAYS),
     healthAdmin4: f(a => a.healthAdminMax >= REPORT_CONSECUTIVE_DAYS),
-    resp: [...respSet],
+    // В уважительные попадают те, у кого СУММА дней по всем этим причинам >= 3
+    resp: f(a => a.respTotalDays >= REPORT_CONSECUTIVE_DAYS),
     noresp: f(a => a.norespMax >= REPORT_CONSECUTIVE_DAYS),
     other: f(a => a.otherMax >= REPORT_CONSECUTIVE_DAYS)
   };
