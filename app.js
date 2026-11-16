@@ -586,8 +586,8 @@ function render() {
           </select>`;
         }
 
-        // ГАЛОЧКА ДОКУМЕНТА
-        const needDoc = ['medical', 'health_admin', 'parents_family', 'parents_health'].includes(curReason);
+        // Галочка документа в раскрытых деталях
+        const needDoc = ['medical', 'parents_family', 'parents_health', 'survey', 'sport'].includes(curReason);
         if (needDoc) {
           fieldsHtml += `
             <label style="display:flex; align-items:center; gap:8px; margin-bottom:8px; font-size:12px; color:var(--text); cursor:pointer; user-select:none; background:rgba(var(--primary-rgb),0.05); padding:6px 10px; border-radius:8px; border:1px solid var(--border);">
@@ -606,7 +606,24 @@ function render() {
           if (sp) hint += ' 🔔';
         } else { hint = 'нерабочий день'; }
         const commentIcon = cur.comment ? ` · 📝 ${escapeHtml(cur.comment.substring(0, 30))}${cur.comment.length > 30 ? '…' : ''}` : '';
-        detailHtml = `<div class="compact-info"><span class="compact-hint">${hint}${commentIcon}</span><button class="btn-expand-row" data-index="${i}">✎ Детали</button></div>`;
+        
+        // Быстрая галочка в свернутом виде
+        const needDoc = ['medical', 'parents_family', 'parents_health', 'survey', 'sport'].includes(curReason);
+        let docHtml = '';
+        if (needDoc) {
+           docHtml = `
+            <label style="display:inline-flex; align-items:center; gap:6px; margin-top:6px; padding: 4px 8px; border-radius: 6px; border: 1px solid ${cur.doc ? 'var(--success)' : 'var(--border)'}; background: ${cur.doc ? 'rgba(74,222,128,0.1)' : 'transparent'}; color: ${cur.doc ? 'var(--success)' : 'var(--muted)'}; font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.2s;">
+              <input type="checkbox" class="quick-doc-checkbox" data-index="${i}" ${cur.doc ? 'checked' : ''} style="width:14px; height:14px; accent-color: var(--success); margin:0;">
+              📄 Справка сдана
+            </label>
+           `;
+        }
+        
+        detailHtml = `<div class="compact-info">
+          <span class="compact-hint">${hint}${commentIcon}</span>
+          <button class="btn-expand-row" data-index="${i}">✎ Детали</button>
+          ${docHtml}
+        </div>`;
       }
     }
 
@@ -657,7 +674,10 @@ function setupTableDelegation() {
       setPartial(idx, f === '' ? null : parseInt(f, 10), tt === '' ? null : parseInt(tt, 10));
       render();
     } else if (t.classList.contains('comment-input')) setComment(parseInt(t.dataset.index, 10), t.value);
-    else if (t.classList.contains('doc-checkbox')) setDocumentStatus(parseInt(t.dataset.index, 10), t.checked);
+    else if (t.classList.contains('doc-checkbox') || t.classList.contains('quick-doc-checkbox')) {
+      setDocumentStatus(parseInt(t.dataset.index, 10), t.checked);
+      render(); // Перерисовываем, чтобы обновить стиль галочки
+    }
   });
 
   tbody.addEventListener('click', e => {
@@ -826,10 +846,26 @@ function openIntervalModal(prefillIdx) {
   if (medWrap && medSel) {
     medSel.value = '';
     medWrap.style.display = reasonSel.value === 'medical' ? 'block' : 'none';
+    
+    // Обработчик смены причины в модалке
     reasonSel.onchange = function() {
       medWrap.style.display = this.value === 'medical' ? 'block' : 'none';
       if (this.value !== 'medical') medSel.value = '';
+      
+      // Показываем/скрываем галочку документа
+      const needDoc = ['medical', 'parents_family', 'parents_health', 'survey', 'sport'].includes(this.value);
+      const docWrap = document.getElementById('intervalDocWrap');
+      if (docWrap) docWrap.style.display = needDoc ? 'block' : 'none';
     };
+  }
+
+  // Сброс галочки при открытии
+  const docChk = document.getElementById('intervalDocProvided');
+  if (docChk) docChk.checked = false;
+  const docWrap = document.getElementById('intervalDocWrap');
+  if (docWrap) {
+    const needDoc = ['medical', 'parents_family', 'parents_health', 'survey', 'sport'].includes(reasonSel.value);
+    docWrap.style.display = needDoc ? 'block' : 'none';
   }
 
   const d = dateInput.value || todayStr();
@@ -851,6 +887,7 @@ async function saveInterval() {
   const skipNonEdu = document.getElementById('intervalSkipNonEdu').checked;
   const medEl = document.getElementById('intervalMedReason');
   const medReason = medEl ? medEl.value : '';
+  const docProvided = document.getElementById('intervalDocProvided')?.checked || false;
   
   if (!from || !to) { alert('Заполните обе даты'); return; }
   if (from > to) { alert('Дата «с» должна быть раньше или равна дате «по»'); return; }
@@ -867,7 +904,14 @@ async function saveInterval() {
 
   for (const d of affected) {
     if (!absences[d]) absences[d] = {};
-    absences[d][idx] = { reason, full: true, comment, medical_reason: reason === 'medical' ? medReason : '', doc: false, archived: false };
+    absences[d][idx] = { 
+      reason, 
+      full: true, 
+      comment, 
+      medical_reason: reason === 'medical' ? medReason : '',
+      doc: docProvided, // <--- Передаем статус документа
+      archived: false
+    };
   }
   closeIntervalModal(); expandedRows.clear(); selectedStudents.clear(); updateBulkPanel(); render();
   for (const d of affected) await saveAbsencesForDay(d);
