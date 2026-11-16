@@ -883,3 +883,87 @@ body.premium-app.nova-ui .sidebar .mobile-preferences > summary::-webkit-details
 .ux-slider:before { content: ""; position: absolute; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: var(--muted); border-radius: 50%; transition: .3s cubic-bezier(0.2, 0.8, 0.2, 1); }
 .ux-switch input:checked + .ux-slider { background-color: var(--primary); border-color: var(--primary); }
 .ux-switch input:checked + .ux-slider:before { transform: translateX(20px); background-color: #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.2); }
+
+/* --- Стили для вкладки "Документы" --- */
+#docShowOverdue {
+  accent-color: var(--primary);
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+#documentsListTbody tr {
+  transition: background-color 0.2s, opacity 0.2s;
+}
+
+#documentsListTbody tr:hover {
+  background-color: var(--card-hover) !important;
+}
+
+/* Красивая кнопка "Сдан" */
+#documentsListTbody .btn-primary {
+  background: linear-gradient(120deg, #078ca6, #16b4bb);
+  border: none;
+  color: white;
+  font-weight: 700;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: transform 0.2s, filter 0.2s;
+}
+#documentsListTbody .btn-primary:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.1);
+}
+
+/* Кнопка "Списать" (опасная) */
+#documentsListTbody .btn-secondary {
+  background: var(--input-bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+#documentsListTbody .btn-secondary:hover {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: var(--danger);
+}
+
+/* Мобильная адаптация для таблицы документов */
+@media (max-width: 768px) {
+  #tab-documents .report-controls {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  #tab-documents .report-controls label {
+    flex: 1 1 100%;
+  }
+  #tab-documents .report-controls button {
+    width: 100%;
+    margin-left: 0 !important;
+  }
+  
+  #tab-documents .table-wrap {
+    overflow-x: auto;
+  }
+  #tab-documents table {
+    min-width: 600px;
+  }
+}
+
+/* Кнопка "Все сдали" */
+#tab-documents .btn-primary {
+  background: linear-gradient(120deg, #10b981, #059669); /* Зеленый оттенок */
+  border: none;
+  color: white;
+  font-weight: 700;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: transform 0.2s, filter 0.2s;
+}
+#tab-documents .btn-primary:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.1);
+}
