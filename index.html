@@ -329,7 +329,8 @@
               <input type="checkbox" id="docShowOverdue" onchange="renderDocumentsList()">
               Показать только просроченные
             </label>
-            <button class="btn-primary" onclick="markAllDocsProvided()" style="margin-left:auto;">✅ Все сдали</button>
+
+            <button class="btn-primary" id="docBulkBtn" style="display:none; margin-left:auto; background:#10b981;" onclick="markSelectedDocsProvided()">✅ Отметить выбранные</button>
             <button class="btn-secondary" onclick="renderDocumentsList()" style="margin-left: 8px;">↻ Обновить</button>
           </div>
 
@@ -338,6 +339,7 @@
               <table class="report-table exact-table">
                 <thead>
                   <tr>
+                    <th style="width: 40px;"><input type="checkbox" id="docSelectAll" onchange="toggleDocSelectAll(this)" style="width:16px; height:16px; cursor:pointer;"></th>
                     <th>Ученик</th>
                     <th>Период</th>
                     <th>Дней</th>
