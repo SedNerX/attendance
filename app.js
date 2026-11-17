@@ -699,6 +699,7 @@ function markAllPresent() {
 }
 
 function copyYesterday() {
+  if (!confirm('Скопировать отметки со вчерашнего дня?\n\n⚠️ ВНИМАНИЕ: Все текущие отметки за этот день будут перезаписаны!')) return;
   const cur = new Date(dateInput.value + 'T00:00:00'); cur.setDate(cur.getDate() - 1);
   const yStr = formatDate(cur); const yData = absences[yStr];
   if (!yData || Object.keys(yData).length === 0) { toast('Вчера отсутствующих не было'); return; }
@@ -709,6 +710,7 @@ function copyYesterday() {
 }
 
 async function copyToWeek() {
+  if (!confirm('Скопировать отметки на 5 учебных дней ВПЕРЕД?\n\n⚠️ ВНИМАНИЕ: Все текущие отметки за эти 5 дней будут перезаписаны!')) return;
   const yData = absences[dateInput.value];
   if (!yData || Object.keys(yData).length === 0) { toast('Сегодня отсутствующих нет'); return; }
   let d = new Date(dateInput.value + 'T00:00:00'); const daysToCopy = []; const savedStates = [];
