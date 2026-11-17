@@ -1670,16 +1670,23 @@ function renderDocumentsList() {
     const dayAbs = absences[dateStr] || {};
     Object.entries(dayAbs).forEach(([idxStr, a]) => {
       const idx = parseInt(idxStr, 10);
-      // Фильтр причин: medical, parents_family, parents_health, survey, sport
       const needDoc = ['medical', 'parents_family', 'parents_health', 'survey', 'sport'].includes(a.reason);
       if (needDoc && !a.doc && !a.archived) {
-        intervals.push({ dateStr, idx, reason: a.reason });
+        // Считаем количество уроков, которые пропустил ученик в этот день
+        const lessonsTotal = getDayLessons(dateStr, studentIds[idx]);
+        let missed = lessonsTotal;
+        if (a.full === false) {
+          const f = Math.max(1, a.from);
+          const t = Math.min(lessonsTotal, a.to);
+          missed = (t >= f) ? (t - f + 1) : 0;
+        }
+        intervals.push({ dateStr, idx, reason: a.reason, full: a.full !== false, missed: missed });
       }
     });
   });
 
   if (intervals.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><span class="emoji">🎉</span>Все документы сданы! Долгов нет.</div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><span class="emoji">🎉</span>Все документы сданы! Долгов нет.</div></td></tr>`;
     return;
   }
 
@@ -1701,7 +1708,10 @@ function renderDocumentsList() {
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
       if (!currentInterval) {
-        currentInterval = { start: item.dateStr, end: item.dateStr, reason: item.reason, dates: [item.dateStr], idx };
+        currentInterval = { 
+          start: item.dateStr, end: item.dateStr, reason: item.reason, 
+          dates: [item.dateStr], idx, full: item.full, missedLessons: item.missed 
+        };
       } else {
         const prevDate = new Date(currentInterval.end + 'T00:00:00');
         let nextEduDate = new Date(prevDate);
@@ -1714,9 +1724,14 @@ function renderDocumentsList() {
         if (formatDate(nextEduDate) === item.dateStr && item.reason === currentInterval.reason) {
           currentInterval.end = item.dateStr;
           currentInterval.dates.push(item.dateStr);
+          if (!item.full) currentInterval.full = false; // Если хотя бы один день неполный, помечаем интервал
+          currentInterval.missedLessons += item.missed;
         } else {
           finalRows.push(currentInterval);
-          currentInterval = { start: item.dateStr, end: item.dateStr, reason: item.reason, dates: [item.dateStr], idx };
+          currentInterval = { 
+            start: item.dateStr, end: item.dateStr, reason: item.reason, 
+            dates: [item.dateStr], idx, full: item.full, missedLessons: item.missed 
+          };
         }
       }
     }
@@ -1735,6 +1750,10 @@ function renderDocumentsList() {
     const reasonLabel = REASONS[row.reason]?.label || row.reason;
     const dateRange = row.start === row.end ? formatDateRu(row.start) : `${formatDateRu(row.start)} — ${formatDateRu(row.end)}`;
     
+    // Визуализация дней и уроков
+    let daysText = row.full ? row.dates.length : `${row.dates.length} <span style="color:var(--danger); font-size:10px;">(неполн.)</span>`;
+    let lessonsText = row.missedLessons;
+
     let actionHtml = `<button class="btn-primary" onclick="markDocProvided('${row.start}', '${row.end}', ${row.idx})" style="padding: 6px 10px; font-size: 11px; background:${isOverdue ? '#ef4444' : ''};">✅ Сдан</button>`;
     
     if (isOverdue) {
@@ -1748,14 +1767,15 @@ function renderDocumentsList() {
         <td><input type="checkbox" class="doc-row-chk" data-key="${rowKey}" onchange="toggleDocRow(this)" style="width:16px; height:16px; cursor:pointer;"></td>
         <td style="text-align:left; padding-left:15px; font-weight:600;">${escapeHtml(name)}</td>
         <td>${dateRange}</td>
-        <td>${row.dates.length}</td>
+        <td>${daysText}</td>
+        <td><b>${lessonsText}</b></td>
         <td><span class="badge" style="background:rgba(var(--primary-rgb),0.1); color:var(--primary); font-size:11px;">${escapeHtml(reasonLabel)}</span></td>
         <td>${isOverdue ? '⚠️ ' : ''}${actionHtml}</td>
       </tr>`);
   });
 
   if (rowsHtml.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state">Нет документов, требующих внимания по выбранному фильтру.</div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state">Нет документов, требующих внимания по выбранному фильтру.</div></td></tr>`;
   } else {
     tbody.innerHTML = rowsHtml.join('');
   }
