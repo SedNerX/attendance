@@ -328,6 +328,7 @@ async function loadAll() {
           from: a.lesson_from, to: a.lesson_to,
           comment: a.comment || '', medical_reason: a.medical_reason || '',
           doc: a.is_document_provided || false,
+          docDate: a.document_date || null, // <--- ДОБАВИЛ
           archived: a.is_document_archived || false
         };
       });
@@ -406,6 +407,7 @@ async function doSaveAbsencesForDay(day) {
           comment: a.comment || null,
           medical_reason: a.reason === 'medical' ? (a.medical_reason || null) : null,
           is_document_provided: a.doc || false,
+          document_date: a.docDate || null, // <--- ДОБАВИЛ
           is_document_archived: a.archived || false
         });
       }
@@ -863,7 +865,7 @@ function renderStudentHistory(idx) {
         const t = Math.min(lessonsTotal, a.to);
         missed = (t >= f) ? (t - f + 1) : 0;
       }
-      allAbs.push({ dateStr, reason: a.reason, full: a.full, missed, doc: a.doc });
+        allAbs.push({ dateStr, reason: a.reason, full: a.full, missed, doc: a.doc, docDate: a.docDate });
     }
   });
 
@@ -872,14 +874,14 @@ function renderStudentHistory(idx) {
     return;
   }
 
-  // Склеиваем в интервалы (как в документах)
+   // Склеиваем в интервалы (как в документах)
   const intervals = [];
   let current = null;
 
   for (let i = 0; i < allAbs.length; i++) {
     const item = allAbs[i];
     if (!current) {
-      current = { start: item.dateStr, end: item.dateStr, reason: item.reason, full: item.full, missed: item.missed, doc: item.doc };
+       current = { start: item.dateStr, end: item.dateStr, reason: item.reason, full: item.full, missed: item.missed, doc: item.doc, docDate: item.docDate };
     } else {
       const prevDate = new Date(current.end + 'T00:00:00');
       let nextEduDate = new Date(prevDate);
@@ -892,9 +894,10 @@ function renderStudentHistory(idx) {
         current.end = item.dateStr;
         current.missed += item.missed;
         if (!item.full) current.full = false;
+        if (!current.docDate && item.docDate) current.docDate = item.docDate;
       } else {
         intervals.push(current);
-        current = { start: item.dateStr, end: item.dateStr, reason: item.reason, full: item.full, missed: item.missed, doc: item.doc };
+        current = { start: item.dateStr, end: item.dateStr, reason: item.reason, full: item.full, missed: item.missed, doc: item.doc, docDate: item.docDate };
       }
     }
   }
@@ -908,7 +911,7 @@ function renderStudentHistory(idx) {
     const dateText = int.start === int.end ? formatDateRu(int.start) : `${formatDateRu(int.start)} — ${formatDateRu(int.end)}`;
     const daysText = int.full ? `1 дн.` : `<span style="color:var(--danger); font-size:10px;">неполн.</span>`;
     const reasonLabel = REASONS[int.reason]?.label || int.reason;
-    const docIcon = int.doc ? '📄' : '';
+    const docIcon = int.doc ? (int.docDate ? `📄 (от ${formatDateRu(int.docDate)})` : '📄') : '';
 
     return `
       <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; border-bottom: 1px dashed var(--border); font-size: 12px;">
@@ -1870,8 +1873,11 @@ function renderDocumentsList() {
     let daysText = row.full ? row.dates.length : `${row.dates.length} <span style="color:var(--danger); font-size:10px;">(неполн.)</span>`;
     let lessonsText = row.missedLessons;
 
-    let actionHtml = `<button class="btn-primary" onclick="markDocProvided('${row.start}', '${row.end}', ${row.idx})" style="padding: 6px 10px; font-size: 11px; background:${isOverdue ? '#ef4444' : ''};">✅ Сдан</button>`;
+    let actionHtml = `<button class="btn-primary" onclick="markDocProvided('${row.start}', '${row.end}', ${row.idx})" style="padding: 6px 10px; font-size: 11px; background:${isOverdue ? '#ef4444' : ''};">✅ Отметить сдачу</button>`;
     
+    // НОВАЯ КНОПКА КАЛЕНДАРЯ
+    actionHtml += ` <button class="btn-secondary" onclick="openDocDateModal('${row.start}', '${row.end}', ${row.idx})" style="padding: 6px 8px; font-size: 11px;" title="Указать дату сдачи">📅</button>`;
+
     if (isOverdue) {
       actionHtml += ` <button class="btn-secondary" onclick="archiveDoc('${row.start}', '${row.end}', ${row.idx})" style="padding: 6px 10px; font-size: 11px;" title="Скрыть из списка">🚫 Списать</button>`;
     }
@@ -1989,6 +1995,48 @@ async function markAllDocsProvided() {
   await Promise.all(datesToSave.map(saveAbsencesForDay));
   
   toast(`Все документы за ${q.name} отмечены как сданные`);
+  renderDocumentsList();
+  render();
+}
+
+// Переменные для запоминания, какую строку мы редактируем
+let currentDocDateTarget = null;
+
+function openDocDateModal(startDate, endDate, idx) {
+  currentDocDateTarget = { startDate, endDate, idx };
+  const input = document.getElementById('docDateInput');
+  // По умолчанию ставим сегодняшнюю дату
+  input.value = todayStr();
+  document.getElementById('docDateBackdrop').classList.add('open');
+}
+
+async function saveDocDate() {
+  if (!currentDocDateTarget) return;
+  const dateVal = document.getElementById('docDateInput').value;
+  if (!dateVal) { toast('Выберите дату'); return; }
+
+  const { startDate, endDate, idx } = currentDocDateTarget;
+  
+  // Идем по всем дням интервала и ставим галочку + дату
+  let d = new Date(startDate + 'T00:00:00');
+  const endD = new Date(endDate + 'T00:00:00');
+  const datesToSave = [];
+  
+  while (d <= endD) {
+    const str = formatDate(d);
+    if (absences[str]?.[idx]) {
+      absences[str][idx].doc = true;
+      absences[str][idx].docDate = dateVal;
+      datesToSave.push(str);
+    }
+    d.setDate(d.getDate() + 1);
+  }
+
+  document.getElementById('docDateBackdrop').classList.remove('open');
+  currentDocDateTarget = null;
+
+  await Promise.all(datesToSave.map(saveAbsencesForDay));
+  toast('Документ сдан (дата сохранена)');
   renderDocumentsList();
   render();
 }
