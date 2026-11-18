@@ -764,12 +764,20 @@ function openStudentStats(idx) {
   const note = studentNotes[studentIds[idx]] || '';
   document.getElementById('statsTitle').textContent = name;
 
-  let totalAbs = 0; const byReason = {}; REASON_KEYS.forEach(k => byReason[k] = 0);
+  let totalAbs = 0; 
+  const byReason = {}; 
+  REASON_KEYS.forEach(k => byReason[k] = 0);
   Object.values(absences).forEach(day => {
-    const a = day[idx]; if (a && a.reason) { totalAbs++; byReason[a.reason] = (byReason[a.reason] || 0) + 1; }
+    const a = day[idx]; 
+    if (a && a.reason) { totalAbs++; byReason[a.reason] = (byReason[a.reason] || 0) + 1; }
   });
 
-  const labels = { medical: 'Мед. справка', health_admin: 'По состоянию здоровья (с разр.)', parents_family: 'Заявление родителей (семейные)', parents_health: 'Заявление родителей (по здоровью)', survey: 'Посещение врача', sport: 'Соревнования', cultural: 'Культ-массовые', ozdorovlenie: 'Санаторий', norespect: 'Без уважительной', other: 'Иная' };
+  const labels = { 
+    medical: 'Мед. справка', health_admin: 'По состоянию здоровья (с разр.)', 
+    parents_family: 'Заявление родителей (семейные)', parents_health: 'Заявление родителей (по здоровью)', 
+    survey: 'Посещение врача', sport: 'Соревнования', cultural: 'Культ-массовые', 
+    ozdorovlenie: 'Санаторий', norespect: 'Без уважительной', other: 'Иная' 
+  };
   const rowsHtml = REASON_KEYS.filter(k => byReason[k] > 0).map(k => `<div class="stats-bar-item"><span>${labels[k]}</span><b>${byReason[k]}</b></div>`).join('');
 
   const studentGroupId = studentGroups[studentIds[idx]] || '';
@@ -793,14 +801,30 @@ function openStudentStats(idx) {
     </div>
   `;
 
+  // Блок истории пропусков
+  const historyHtml = `
+    <div style="margin-top: 25px; border-top: 1px solid var(--border); padding-top: 15px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 10px;">
+        <h3 style="font-size: 14px; margin:0; color: var(--text);">История пропусков</h3>
+        <select id="studentHistoryQuarter" onchange="renderStudentHistory(${idx})" style="padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text); font-size: 11px;">
+          ${quarters.map((q, i) => `<option value="${i}">${escapeHtml(q.name)}</option>`).join('')}
+        </select>
+      </div>
+      <div id="studentHistoryList" style="max-height: 250px; overflow-y: auto; padding-right: 5px;">
+        <!-- Сюда JS отрисует список -->
+      </div>
+    </div>
+  `;
+
   const html = `
     <p class="hint" style="margin-bottom:12px;">Всего пропусков (дней): <b style="color:var(--danger); font-size:16px;">${totalAbs}</b></p>
     <div class="stats-bar-student">${rowsHtml || '<div class="empty-state">Пропусков нет</div>'}</div>
     ${groupHtml}
     ${homeHtml}
-    <div class="form-group" style="margin-top:15px;">
+    ${historyHtml}
+    <div class="form-group" style="margin-top:20px;">
       <label>Заметка к ученику (видна только вам)</label>
-      <textarea id="studentNoteInput" style="min-height:80px;" placeholder="Например: аллергия на физкультуру...">${escapeHtml(note)}</textarea>
+      <textarea id="studentNoteInput" style="min-height:60px;" placeholder="Например: аллергия на физкультуру...">${escapeHtml(note)}</textarea>
     </div>
     <div class="modal-actions">
       <button class="btn-secondary" onclick="document.getElementById('studentStatsBackdrop').classList.remove('open')">Закрыть</button>
@@ -808,6 +832,96 @@ function openStudentStats(idx) {
     </div>`;
   document.getElementById('studentStatsContent').innerHTML = html;
   document.getElementById('studentStatsBackdrop').classList.add('open');
+
+  // Инициализируем историю
+  const historySel = document.getElementById('studentHistoryQuarter');
+  const today = todayStr();
+  const currentQIdx = quarters.findIndex(q => today >= q.from && today <= q.to);
+  historySel.value = currentQIdx !== -1 ? currentQIdx : 0;
+  renderStudentHistory(idx);
+}
+
+function renderStudentHistory(idx) {
+  const sel = document.getElementById('studentHistoryQuarter');
+  if (!sel) return;
+  const qIdx = parseInt(sel.value, 10);
+  const q = quarters[qIdx];
+  if (!q) return;
+
+  const listEl = document.getElementById('studentHistoryList');
+  const allAbs = [];
+
+  // Собираем все пропуски за выбранную четверть
+  const eduDays = getEducationDays(q.from, q.to);
+  eduDays.forEach(dateStr => {
+    const a = absences[dateStr]?.[idx];
+    if (a && a.reason) {
+      const lessonsTotal = getDayLessons(dateStr, studentIds[idx]);
+      let missed = lessonsTotal;
+      if (a.full === false) {
+        const f = Math.max(1, a.from);
+        const t = Math.min(lessonsTotal, a.to);
+        missed = (t >= f) ? (t - f + 1) : 0;
+      }
+      allAbs.push({ dateStr, reason: a.reason, full: a.full, missed, doc: a.doc });
+    }
+  });
+
+  if (allAbs.length === 0) {
+    listEl.innerHTML = '<div class="empty-state" style="padding: 10px;">Пропусков за эту четверть нет</div>';
+    return;
+  }
+
+  // Склеиваем в интервалы (как в документах)
+  const intervals = [];
+  let current = null;
+
+  for (let i = 0; i < allAbs.length; i++) {
+    const item = allAbs[i];
+    if (!current) {
+      current = { start: item.dateStr, end: item.dateStr, reason: item.reason, full: item.full, missed: item.missed, doc: item.doc };
+    } else {
+      const prevDate = new Date(current.end + 'T00:00:00');
+      let nextEduDate = new Date(prevDate);
+      nextEduDate.setDate(nextEduDate.getDate() + 1);
+      while (!isEducationDay(formatDate(nextEduDate))) {
+        nextEduDate.setDate(nextEduDate.getDate() + 1);
+      }
+
+      if (formatDate(nextEduDate) === item.dateStr && item.reason === current.reason) {
+        current.end = item.dateStr;
+        current.missed += item.missed;
+        if (!item.full) current.full = false;
+      } else {
+        intervals.push(current);
+        current = { start: item.dateStr, end: item.dateStr, reason: item.reason, full: item.full, missed: item.missed, doc: item.doc };
+      }
+    }
+  }
+  if (current) intervals.push(current);
+
+  // Сортируем от новых к старым
+  intervals.sort((a, b) => b.start.localeCompare(a.start));
+
+  // Рендерим
+  listEl.innerHTML = intervals.map(int => {
+    const dateText = int.start === int.end ? formatDateRu(int.start) : `${formatDateRu(int.start)} — ${formatDateRu(int.end)}`;
+    const daysText = int.full ? `1 дн.` : `<span style="color:var(--danger); font-size:10px;">неполн.</span>`;
+    const reasonLabel = REASONS[int.reason]?.label || int.reason;
+    const docIcon = int.doc ? '📄' : '';
+
+    return `
+      <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; border-bottom: 1px dashed var(--border); font-size: 12px;">
+        <div style="flex: 1; min-width: 0;">
+          <div style="font-weight: 600; color: var(--text); margin-bottom: 2px;">${dateText}</div>
+          <div style="color: var(--muted); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${reasonLabel} ${docIcon}</div>
+        </div>
+        <div style="text-align: right; margin-left: 10px;">
+          <div style="font-weight: 700; color: var(--primary);">${int.missed} ур.</div>
+        </div>
+      </div>
+    `;
+  }).join('');
 }
 
 async function saveStudentNote(idx) {
