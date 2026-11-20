@@ -599,11 +599,18 @@ async function loadAllDataForSummary() {
     };
   });
 
+  // ВАЖНО: Строим карту пропусков по ИНДЕКСАМ учеников, а не по их UUID
   (absences || []).forEach(a => {
     const student = (students || []).find(s => s.id === a.student_id);
     if (student && classMap[student.class_id]) {
-      if (!classMap[student.class_id].absences[a.date]) classMap[student.class_id].absences[a.date] = {};
-      classMap[student.class_id].absences[a.date][student.id] = {
+      const cls = classMap[student.class_id];
+      // Находим индекс этого ученика в массиве учеников класса
+      const idx = cls.students.findIndex(s => s.id === student.id);
+      if (idx === -1) return;
+
+      if (!cls.absences[a.date]) cls.absences[a.date] = {};
+      // Записываем по индексу (idx), а не по student.id
+      cls.absences[a.date][idx] = {
         reason: a.reason,
         full: a.is_full_day !== false,
         from: a.lesson_from,
