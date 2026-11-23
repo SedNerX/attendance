@@ -1137,7 +1137,20 @@ async function saveClassList() {
   } catch (e) { toast('Ошибка сохранения списка: ' + e.message); return; }
 
   document.getElementById('modalBackdrop').classList.remove('open');
-  await loadAll(); expandedRows.clear(); selectedStudents.clear(); updateBulkPanel(); render();
+  
+  // ЖЕСТКАЯ ОЧИСТКА ВСЕХ ДАННЫХ
+  absences = {}; 
+  students = [];
+  studentIds = [];
+  studentNotes = {};
+  studentGroups = {};
+  studentHomeschooled = {};
+  expandedRows.clear();
+  selectedStudents.clear();
+  
+  await loadAll(); // Заново качаем всё из базы
+  updateBulkPanel(); 
+  render();
   toast('Список сохранён'); logAction('Изменён список класса');
 }
 
