@@ -486,7 +486,7 @@ function collapseAllRows() { expandedRows.clear(); render(); toast('Все де�
 function renderMiniCalendar() {
   miniCalEl.innerHTML = '';
   const today = new Date();
-  for (let i = -10; i <= 10; i++) {
+  for (let i = -20; i <= 20; i++) {
     const d = new Date(today); d.setDate(today.getDate() + i);
     const str = formatDate(d); const dow = d.getDay(); const sp = getSpecialDay(str);
     const isWeekend = (dow === 0 || dow === 6) && !sp;
